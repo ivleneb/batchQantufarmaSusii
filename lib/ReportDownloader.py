@@ -1,6 +1,15 @@
 import requests
 import time
 
+import json
+
+# Read JSON file
+with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+    user_ = data["user"]
+    pass_ = data["password"]
+    uri_ = data["uri"]
+
 class ReportDownloader:
     def __init__(self, reportName, reportCode, headers, init, end, category=None):
         self.rname = reportName
@@ -61,10 +70,10 @@ class ReportDownloader:
             return ""
         
     def login(self):
-        url = 'https://api.susii.com/auth/login/'
+        url = uri_+'/auth/login/'
         payload = {
-            'username': "qantufarma",
-            'password': "180490Qantufarma"
+            'username': user_,
+            'password': pass_
         }
 
         r = requests.post(url, json=payload)
@@ -76,7 +85,7 @@ class ReportDownloader:
         print(self.headers)
         
     def requestReport(self):
-        url2 = 'https://api.susii.com/v1/stats/requested-reports/'
+        url2 = uri_+'/v1/stats/requested-reports/'
         payload2 = {
             "format":"xlsx",
             "from_date":self.initDate+"T04:11:58.791Z",
@@ -96,7 +105,7 @@ class ReportDownloader:
         self.reportName = j['name']
 
     def downloadReport(self):
-        url3 = 'https://api.susii.com/v1/stats/requested-reports/?business=5053'
+        url3 = uri_+'/v1/stats/requested-reports/?business=5053'
         r = requests.get(url3, headers=self.headers)
         j = r.json()
         print(f"Status Code: {r.status_code}, Response: {r.json()}")
