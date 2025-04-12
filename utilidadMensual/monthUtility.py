@@ -1,5 +1,5 @@
 import sys, os
-sys.path.append(r'F:\proyectos\botica\qantufarma')
+sys.path.append('../')
 from lib.libclass import *
 from lib.ReportDownloader import *
 import pandas

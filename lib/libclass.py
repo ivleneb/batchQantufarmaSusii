@@ -1,11 +1,12 @@
 import re
 from datetime import datetime
 import pandas
+import math
 
 class QantuProduct:
     def __init__(self, code, name, stock=None, disable=None,
                  category=None, createdAt=None, minStock=None,
-                 price=None, cost=None, commPer=0.04, otc='Y'):
+                 price=None, cost=None, commPer=0.10, otc='Y'):
         self.name = re.sub(' +', ' ', name)
         self.category = category
         self.code = code
@@ -126,7 +127,32 @@ class QantuProduct:
         return self.otc
         
     def setOtc(self, otc):
-        self.otc = otc    
+        self.otc = otc
+    
+    def getFechaVto(self):
+        return self.fechaVto
+    
+    def setFechaVto(self, fechaVto):
+        self.fechaVto = fechaVto.replace(" ", "").upper()
+        if "S" in self.fechaVto and "V" in self.fechaVto:
+            self.remainingDays = 1000
+            return
+        
+        today = datetime.now()
+        try:
+            delta = None
+            if self.fechaVto.count("/")==2:
+                delta = datetime.strptime(self.fechaVto, "%Y/%m/%d") - today
+            else:
+                delta = datetime.strptime(self.fechaVto+"/01", "%Y/%m/%d") - today
+            self.remainingDays = delta.days
+        except ValueError:
+            if self.stock != 0:
+                print("ERROR: invalid fechaVto format "+self.fechaVto+" "+self.name)
+            self.remainingDays = 0
+    
+    def getRemainingDays(self):
+        return self.remainingDays
     
 class QantuSuplement(QantuProduct):
     def __init__(self, code, name, price, cost):
@@ -135,19 +161,36 @@ class QantuSuplement(QantuProduct):
 
 class QantuMedicine(QantuProduct):
     def __init__(self, code, name, stock=None, disable=None,
-                 createdAt=None, minStock=None, price=0.0, cost=0.0):
+                 createdAt=None, minStock=None, price=0.0, cost=0.0, generico=0):
         super().__init__(code, name, stock, disable, 'MEDICAMENTOS', createdAt, minStock, price, cost)
+        self.generico = generico
+        self.setMedProperties()
+        
+    def setMedProperties(self):
         listCaract=self.name.split()
         if self.validName(listCaract):
             self.concentration = listCaract[1]
+            try:
+                self.cantidad = int(listCaract[3])
+            except ValueError:
+                print("VALUE ERROR: "+self.name)
+                self.cantidad = 0
+                
             self.ff = listCaract[4]
             self.formula = listCaract[0]
+            ls = re.split(r'[()]', self.formula)
+            # for non -generic meds
+            if len(ls)>1:
+                self.principioActivo = ls[1]
+            else:
+                self.principioActivo = ""
         else:
             self.concentration = ""
             self.ff = ""
             self.formula = ""
-        self.generico = 0
-    
+            self.principioActivo = ""
+            self.cantidad = 0
+        
     def validName(self, listCaract):
         if len(listCaract) < 5:
             print('ValidName: TOO SHORT NAME: '+ self.name)
@@ -174,8 +217,32 @@ class QantuMedicine(QantuProduct):
     def isGenerico(self):
         return self.generico==1
     
+    def valBrand(self):
+        return self.generico
+    
     def setGenerico(self, gen):
         self.generico = gen
+    
+    def setUnitsCaja(self, unitsCaja):
+        if math.isnan(unitsCaja):
+            self.unitsCaja = 0
+        else:
+            self.unitsCaja = unitsCaja
+    
+    def getUnitsCaja(self):
+        return self.unitsCaja
+    
+    def setUnitsBlister(self, unitsBlister):
+        self.unitsBlister = unitsBlister
+    
+    def getUnitsBlister(self):
+        return self.unitsBlister
+    
+    def getPrincipioActivo(self):
+        return self.principioActivo
+    
+    def getCantidad(self):
+        return self.cantidad
 
 class QantuGalenico(QantuProduct):
     def __init__(self, code, name, stock, disable, createdAt, minStock, price=0.0, cost=0.0):

@@ -1,6 +1,8 @@
 # Ignore all Excel files
 *.xls
+*.xls#
 *.xlsx
+*.xlsx#
 *.csv
 *.zip
 *.rar
