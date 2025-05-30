@@ -63,7 +63,7 @@ class ReportDownloader:
     def execute(self):
         self.login()
         self.requestReport()
-        time.sleep(10)
+        time.sleep(11)
         if self.downloadReport():
             return self.reportName
         else:

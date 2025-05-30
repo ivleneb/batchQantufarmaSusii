@@ -6,7 +6,8 @@ import math
 class QantuProduct:
     def __init__(self, code, name, stock=None, disable=None,
                  category=None, createdAt=None, minStock=None,
-                 price=None, cost=None, commPer=0.10, otc='Y'):
+                 price=None, cost=None, commPer=0.09, otc='Y',
+                 alias=None, unidad=None):
         self.name = re.sub(' +', ' ', name)
         self.category = category
         self.code = code
@@ -37,6 +38,9 @@ class QantuProduct:
             self.minStock = minStock
         
         self.otc = otc
+        self.unitsCaja = 0
+        self.alias = alias
+        self.unidad = unidad
     
     def merge(self, prod):
         self.addStock(prod.getStock())
@@ -47,6 +51,9 @@ class QantuProduct:
         
         if self.minStock < prod.getMinStock():
             self.setMinStock(prod.getMinStock())
+            
+        if self.getLastProvider() is None or (len(self.getLastProvider()) < 2 and len(prod.getLastProvider())>=2):
+            self.setLastProvider(prod.getLastProvider())
     
     def getCreatedAt(self):
         return self.createdAt
@@ -74,6 +81,9 @@ class QantuProduct:
     
     def getStock(self):
         return self.stock
+    
+    def setStock(self, stock):
+        self.stock = stock
     
     def addStock(self, stock):
         self.stock = self.stock + stock
@@ -110,6 +120,12 @@ class QantuProduct:
     
     def isDisable(self):
         return self.disable==1
+    
+    def getDisable(self):
+        if self.disable!=1:
+            return 0
+        else:
+            return 1
 
     def isNoUsar(self):
         return self.name.find('NO USAR')!=-1
@@ -133,7 +149,10 @@ class QantuProduct:
         return self.fechaVto
     
     def setFechaVto(self, fechaVto):
-        self.fechaVto = fechaVto.replace(" ", "").upper()
+        self.fechaVto = ''
+        if fechaVto==fechaVto:
+            self.fechaVto = fechaVto.replace(" ", "").upper()
+            
         if "S" in self.fechaVto and "V" in self.fechaVto:
             self.remainingDays = 1000
             return
@@ -153,6 +172,123 @@ class QantuProduct:
     
     def getRemainingDays(self):
         return self.remainingDays
+    
+    def setUnitsCaja(self, unitsCaja):
+        if math.isnan(unitsCaja):
+            self.unitsCaja = 0
+        else:
+            self.unitsCaja = unitsCaja
+
+    def getUnitsCaja(self):
+        return self.unitsCaja
+    
+    def setAlias(self, alias):
+        self.alias = alias
+    
+    def getAlias(self):
+        return self.alias
+    
+    def setUnidad(self, unidad):
+        self.unidad = unidad
+        
+    def getUnidad(self):
+        return self.unidad
+    
+    def setNumRegSan(self, numRegSan):
+        self.numRegSan = numRegSan
+        
+    def getNumRegSan(self):
+        return self.numRegSan
+    
+    def setNroLote(self, nroLote):
+        self.nroLote = nroLote
+    
+    def getNroLote(self):
+        return self.nroLote
+    
+    def setAdicional(self, adicional):
+        self.adicional = adicional
+    
+    def getAdicional(self):
+        return self.adicional
+    
+    def setMonedaDeVenta(self, monedaDeVenta):
+        self.monedaDeVenta = monedaDeVenta
+        
+    def getMonedaDeVenta(self):
+        return self.monedaDeVenta
+    
+    def setMonedaDeCompra(self, monedaDeCompra):
+        self.monedaDeCompra = monedaDeCompra
+        
+    def getMonedaDeCompra(self):
+        self.monedaDeCompra
+        
+    def setConStock(self, conStock):
+        self.conStock = conStock
+        
+    def getConStock(self):
+        return self.conStock
+    
+    def setImpuesto(self, impuesto):
+        self.impuesto = impuesto
+        
+    def getImpuesto(self):
+        return self.impuesto
+    
+    def setPesoBruto(self, pesoBruto):
+        self.pesoBruto = pesoBruto
+        
+    def getPesoBruto(self):
+        return self.pesoBruto
+    
+    def setPorcentajeDeGanancia(self, porcentajeDeGanancia):
+        self.porcentajeDeGanancia = porcentajeDeGanancia
+        
+    def getPorcentajeDeGanancia(self):
+        return self.porcentajeDeGanancia
+    
+    def setDescuento(self, descuento):
+        self.descuento = descuento
+        
+    def getDescuento(self):
+        return self.descuento
+    
+    def setTipoDeDescuento(self, tipoDeDescuento):
+        self.tipoDeDescuento = tipoDeDescuento
+        
+    def getTipoDeDescuento(self):
+        return self.tipoDeDescuento
+    
+    def setBusquedaDesdeVentas(self, busquedaDesdeVentas):
+        self.busquedaDesdeVentas = busquedaDesdeVentas
+        
+    def getBusquedaDesdeVentas(self):
+        return self.busquedaDesdeVentas
+    
+    def setCategoriaSunat(self, categoriaSunat):
+        self.categoriaSunat = categoriaSunat
+        
+    def getCategoriaSunat(self):
+        return self.categoriaSunat
+    
+    def setGenerico(self, gen):
+        self.generico = gen
+        
+    def getGenerico(self):
+        return self.generico
+    
+    def setUnitsBlister(self, unitsBlister):
+        self.unitsBlister = unitsBlister
+    
+    def getUnitsBlister(self):
+        return self.unitsBlister
+    
+    def setTempAlm(self, tempAlm):
+        self.tempAlm = tempAlm
+        
+    def getTempAlm(self):
+        return self.tempAlm
     
 class QantuSuplement(QantuProduct):
     def __init__(self, code, name, price, cost):
@@ -358,10 +494,11 @@ class QantuGeneral(QantuProduct):
         return True
 
 class QantuPackage():
-    def __init__(self, code, name, price=0.0, cost=0.0, category=None):
+    def __init__(self, code, name, price=0.0, cost=0.0, category=None, alias=None, unidad=None):
         self.code = code
         self.name = name
         self.items={}
+        self.itemsObj={}
         self.soldUnits = None
         self.cost = cost
         self.price = price
@@ -369,12 +506,17 @@ class QantuPackage():
         self.generico = None
         self.commissionPer=0.04
         self.commission = self.commissionPer*(self.price-self.cost)
+        self.alias = alias
+        self.unidad = unidad
     
     def getName(self):
         return self.name
 
     def addItem(self, prodCode, quantity:int):
         self.items[prodCode]=quantity
+        
+    def addItemObj(self, prodObj):
+        self.itemsObj[prodObj.getCode()] = prodObj
     
     def getSoldUnits(self):
         return self.soldUnits
@@ -415,6 +557,20 @@ class QantuPackage():
     
     def getCommission(self):
         return self.commission
+    
+    def getAlias(self):
+        return self.alias
+    
+    def setAlias(self, alias):
+        self.alias = alias
+        
+    def getUnidad(self):
+        return self.unidad
+    
+    def setUnidad(self, unidad):
+        self.unidad = unidad
+        
+    
         
 class QantuSeller():
     def __init__(self, name):

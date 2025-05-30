@@ -10,21 +10,31 @@ import math
 
 # pedir stock para NBR_DAYS dias
 NBR_DAYS=30
+stock_0 = True
 
 prodDict = {}
 packDict = {}
-providers = ['DROGE', 'V&G', 'DPERU', 'EURO', 'INKAF',  'LIMAC',
-        'CBC', 'VEGA', 'AGREEN']
+providers = []
 
 rowProv=1
-colStock = 'D'
-colVenta = 'I'
-colPedir = 'M'
-colFinal = 'N'
-colProvI = 'O'
-colProvF = chr(ord(colProvI)+len(providers)-1)
-colProv = ord(colProvI)-ord('A')
-colElegi = 'X'
+colCOD = 'A'
+colNOMBRE = 'B'
+colCATEGORIA = 'C'
+colPA = 'D'
+colSTOCK = 'E'
+colBRAND = 'F'
+colPRVDOR = 'G'
+colCOSTO = 'H'
+colPRECIO = 'I'
+colVENTAS = 'J'
+colPER = 'K'
+colBLI = 'L'
+colCJA = 'M'
+colPEDIR = 'N'
+colFINAL = 'O'
+colCOSTOCJA = 'P'
+colTOTAL = 'Q'
+
 
 def isFF(ls, name):
     for l in ls:
@@ -33,7 +43,8 @@ def isFF(ls, name):
     return False
 
 def remove_lab(input_string):
-    return re.sub(r'\[.*?\]', '', input_string)
+    s =re.sub(r'\[.*?\]', '', input_string)
+    return s.strip()
 
 def addSaleData(prod, sale_df):
     sub_df = sale_df.loc[sale_df['CÓDIGO'] == prod.getCode()]
@@ -74,7 +85,6 @@ def getProduct(row):
         prod = QantuMedicine(row['CÓDIGO'], row['NOMBRE'].upper(), row['CANTIDAD'],
                              row['disable (EXTRA)'], row['creado (EXTRA)'], row['STOCK MÍNIMO'],
                              row['PRECIO DE VENTA'], row['PRECIO DE COMPRA'], row['generico (EXTRA)'])
-        prod.setUnitsCaja(row['units_caja (EXTRA)'])
         prod.setUnitsBlister(row['units_blister (EXTRA)'])
     elif row['CATEGORÍA']=='GALENICOS':
         prod = QantuGalenico(row['CÓDIGO'], row['NOMBRE'].upper(), row['CANTIDAD'],
@@ -89,6 +99,7 @@ def getProduct(row):
                             row['disable (EXTRA)'], row['CATEGORÍA'], row['creado (EXTRA)'], row['STOCK MÍNIMO'],
                              row['PRECIO DE VENTA'], row['PRECIO DE COMPRA'])
     
+    prod.setUnitsCaja(row['units_caja (EXTRA)'])
     prod.setBrand(row['lab (EXTRA)'])
     return prod
 
@@ -300,32 +311,111 @@ def combineAseo(prodDict):
 
 def createDataProvList(prov, cont):
     data = []
-    filt = '=FILTER(Medicamentos!A2:W{num},Medicamentos!{colE}2:{colE}{num}="{pr}")'.format(
+    filt = '=FILTER(Productos!{ColC}2:{ColT}{num},Productos!{colE}2:{colE}{num}="{pr}")'.format(
+        ColC = colCOD,
+        ColT = colTOTAL,
         num = cont,
         pr = prov,
-        colE = colElegi
+        colE = colPRVDOR
         )
-    prs = []
-    for p in providers:
-        prs.append('')
-    l = [filt, '', '', '', '', '', '', '', '', '', '', '', '', ''] + prs + ['', '']
+    l = [filt, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
     data.append(l)
     return data
+
+def medsCriteria(prod, pedirVal, perVal):
+    final = '=0'
+    
+    if pedirVal<0.5:
+        return final
+    
+    cja = prod.getUnitsCaja()
+
+    if cja==0 and isFF(["TUB", "FCO"], prod.getName()):
+        print("DEFAULT for TUB or FCO is 1 "+prod.getName())
+        cja = 1
+    elif cja==0 and isFF(["TAB", "CAP"], prod.getName()):
+        print("DEFAULT for TAB or CAP is 30 "+prod.getName())
+        cja = 30
+
+    if cja == prod.getCantidad():
+        cja = 1
+
+    flag = False
+    for i in range(20):
+        if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
+            final = '={val}'.format(val=i+1)
+            flag = True
+            break
+
+    if not flag and perVal>0.5:
+        final = '={val}'.format(val=1)
+    
+    return final
+
+def bellezaCriteria(prod, pedirVal, perVal):
+    final = '=0'
+    
+    if prod.getStock()<=0 and pedirVal<0.25:
+        return final
+    
+    cja = prod.getUnitsCaja()
+    if cja==0:
+        print("DEFAULT for OTHERS CAT is 1 "+prod.getName())
+        cja = 1
+
+    flag = False
+    for i in range(20):
+        if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
+            final = '={val}'.format(val=i+1)
+            flag = True
+            break
+
+    if not flag and perVal>=0.25:
+        final = '={val}'.format(val=1)
+    
+    return final
+
+def defaultCriteria(prod, pedirVal, perVal):
+    final = '=0'
+    
+    if prod.getStock()<=0 and pedirVal<0.25:
+        return final
+    
+    cja = prod.getUnitsCaja()
+    if cja==0:
+        print("DEFAULT for OTHERS CAT is 1 "+prod.getName())
+        cja = 1
+
+    flag = False
+    for i in range(20):
+        if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
+            final = '={val}'.format(val=i+1)
+            flag = True
+            break
+
+    if not flag and perVal>=0.25:
+        final = '={val}'.format(val=1)
+    
+    return final
 
 def createDataList(prodDict):
     data = []
     count = 0
 
     for key, prod in prodDict.items():
+        
+        if stock_0:
+            prod.setStock(0)
+        
         count = count + 1
         pedir = '=({dys}*{colV}{rowV}/{n})-{colS}{rowS}'.format(
             dys=NBR_DAYS, n=prod.getActiveDays(),
-            colV=colVenta, rowV=count+1,
-            colS=colStock, rowS=count+1)
+            colV=colVENTAS, rowV=count+1,
+            colS=colSTOCK, rowS=count+1)
         
         per = '= {colP}{rowP}/ABS({colS}{rowS})'.format(
-            colP=colPedir, rowP=count+1,
-            colS=colStock, rowS=count+1)
+            colP=colPEDIR, rowP=count+1,
+            colS=colSTOCK, rowS=count+1)
         
         if prod.getStock()==0:
             per = '=100'
@@ -335,7 +425,14 @@ def createDataList(prodDict):
             active_days=1
         
         daily_mean = prod.getSoldUnits()/active_days
+        
         pedirVal = (NBR_DAYS*daily_mean-prod.getStock())
+        if active_days < 30:
+            pedirVal = (active_days*daily_mean-prod.getStock())
+            print("LESS THAN 30 days "+prod.getName())
+            pedir = '={pedirValue}'.format(pedirValue=pedirVal) 
+        
+        
         perVal = 0
         if prod.getStock()!=0:
             perVal = pedirVal/prod.getStock()
@@ -347,86 +444,50 @@ def createDataList(prodDict):
         #    if pV>pedirVal:
         #        pedir = '={val}'.format(val=pV)
         
-        if 'ANTALGINA' in prod.getName():
-            print(prod.getName())
-            print("cja "+str(prod.getUnitsCaja()))
-        
-        final = 0
-        if prod.getCategory() == 'MEDICAMENTOS' and ((isFF(["TUB", "FCO"], prod.getName()) and pedirVal>0.5) or isFF(["TAB", "CAP"], prod.getName())):
-            cja = prod.getUnitsCaja()
-            #print("cja is "+str(cja))
-            if cja==0 and isFF(["TUB", "FCO"], prod.getName()):
-                print("DEFAULT for TUB or FCO is 1 "+prod.getName())
-                cja = 1
-            elif cja==0 and isFF(["TAB", "CAP"], prod.getName()):
-                print("DEFAULT for TAB or CAP is 30 "+prod.getName())
-                cja = 30
-            
-            if cja == prod.getCantidad():
-                cja = 1
-
-            flag = False
-            for i in range(20):
-                if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
-                    final = '={val}'.format(val=i+1)
-                    flag = True
-                    break
-
-            if not flag and perVal>0.5:
-                final = '={val}'.format(val=1)
-                
-        elif prod.getCategory() != 'MEDICAMENTOS' and pedirVal>0.5:
-            #cja = prod.getUnitsCaja()
-            
-            """if cja==0:
-                print("DEFAULT for OTHERS CAT is 1 "+prod.getName())
-                cja = 1
-            
-            if cja == prod.getCantidad():
-                cja = 1
-            """
-            cja = 1
-            flag = False
-            for i in range(20):
-                if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
-                    final = '={val}'.format(val=i+1)
-                    flag = True
-                    break
-
-            if not flag and perVal>0.5:
-                final = '={val}'.format(val=1)
-
-        #elif pedirVal>0.5:
-        #    print("NO ACTION "+prod.getName())
-            
-        
-        prs = []
-        for p in providers:
-            prs.append('')
-
-        elegido = '''=INDIRECT(ADDRESS({rowPr}, {colPr}+MATCH(
-                MIN({colPrI}{rowP}:{colPrF}{rowP}),
-                {colPrI}{rowP}:{colPrF}{rowP},0
-                )))'''.format(
-            rowPr=rowProv, colPr=colProv,
-            colPrI=colProvI, colPrF=colProvF,
-            rowP=count+1)
-        monto =  '=MIN({colPrI}{rowP}:{colPrF}{rowP})*{colF}{rowP}'.format(
-            colPrI=colProvI, colPrF=colProvF,
-            colF=colFinal, rowP=count+1)
-        l=[]
+        final = '0'
         if prod.getCategory() == 'MEDICAMENTOS':
-            l = [prod.getCode(), remove_lab(prod.getName()), prod.getPrincipioActivo(),
+            final = medsCriteria(prod, pedirVal, perVal)
+        elif prod.getCategory() == 'BELLEZA':
+            final = bellezaCriteria(prod, pedirVal, perVal)
+        else:
+            final = defaultCriteria(prod, pedirVal, perVal)
+
+        priceCja =  '={colCostUni}{rowP}*{colCaja}{rowP}'.format(
+            colCostUni=colCOSTO,
+            colCaja=colCJA,
+            rowP=count+1)
+        
+        monto =  '={colCostUni}{rowP}*{colCaja}{rowP}*{colF}{rowP}'.format(
+            colCostUni=colCOSTO,
+            colCaja=colCJA,
+            colF=colFINAL,
+            rowP=count+1)
+        
+        l=[]
+        
+        pName = prod.getName()
+        if prod.getUnitsCaja()!=0:
+            pName = prod.getName()+" X "+str(int(prod.getUnitsCaja()))
+        
+        if prod.getCategory() == 'MEDICAMENTOS':
+            l = [prod.getCode(), pName, prod.getCategory(), prod.getPrincipioActivo(),
                      prod.getStock(), prod.getBrand(), prod.getLastProvider(),
                      prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per, prod.getUnitsBlister(), prod.getUnitsCaja(),
-                     pedir, final]
+                     pedir, final, priceCja, monto]
         else:
-            l = [prod.getCode(), remove_lab(prod.getName()), '', prod.getStock(), prod.getBrand(), prod.getLastProvider(),
-                     prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per, 0, 0,
-                     pedir, final]
-            
-        l = l + prs + [re.sub(r'\s+', ' ', elegido.replace('\n', '')), monto]
+            l = [prod.getCode(), pName, prod.getCategory(), '',
+                     prod.getStock(), prod.getBrand(), prod.getLastProvider(),
+                     prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per, 0, prod.getUnitsCaja(),
+                     pedir, final, priceCja, monto]
+
         data.append(l)
+        
+        lastProvider = prod.getLastProvider()
+        if lastProvider == None or isinstance(lastProvider, float):
+            lastProvider = ""    
+        
+        if not lastProvider in providers:
+            providers.append(lastProvider)
         
     return data
 
@@ -499,6 +560,7 @@ for pack in packDict.values():
     for packprodCode, qty in pack.getItems().items():
         if packprodCode in prodDict.keys():
             prodDict[packprodCode].addSoldUnits(qty*pack.getSoldUnits())
+            #if prodDict[packprodCode].
 
         
 prodDict=combineMedicines(prodDict)
@@ -506,33 +568,28 @@ prodDict=combineGalenicos(prodDict)
 prodDict=combineMedDevices(prodDict)
 #prodDict=combineAseo(prodDict)
 
-medsDict = {}
-otherDict = {}
-for key, prod in prodDict.items():
-    if prod.getCategory()=='MEDICAMENTOS':
-        medsDict[key]=prod
-    else:
-        otherDict[key]=prod
+dataOut = createDataList(prodDict)
+#dataMeds = createDataList(medsDict)
+#dataOther = createDataList(otherDict)
+#countMeds = len(dataMeds)
+#countOther =len(dataOther)
+countProds = len(dataOut)
 
-dataMeds = createDataList(medsDict)
-dataOther = createDataList(otherDict)
-countMeds = len(dataMeds)
-countOther =len(dataOther)
-
-cols = ['COD', 'NOMBRE', 'PA', 'STOCK', 'BRAND', 'PRVDOR', 'COSTO',
-        'PRECIO', 'VENTAS', 'PER', 'BLI', 'CJA', 'PEDIR', 'FINAL']
-cols = cols + providers + ['ELEGIDO', 'MONTO']
-outMed_df = pandas.DataFrame(dataMeds, columns = cols)
-outOther_df = pandas.DataFrame(dataOther, columns = cols)
+cols = ['COD', 'NOMBRE', 'CATEGORIA', 'PA', 'STOCK', 'BRAND', 'PRVDOR', 'COSTO',
+        'PRECIO', 'VENTAS', 'PER', 'BLI', 'CJA', 'PEDIR', 'FINAL', 'COSTOCJA', 'MONTO']
+#outMed_df = pandas.DataFrame(dataMeds, columns = cols)
+#outOther_df = pandas.DataFrame(dataOther, columns = cols)
+out_df = pandas.DataFrame(dataOut, columns = cols)
 
 now = datetime.now().strftime("%Y%m%d")
 excel_name = 'ListaPedidos_'+now+'.xlsx'
 
 with pandas.ExcelWriter(excel_name) as excel_writer:
-    outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
-    outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
+    out_df.to_excel(excel_writer, sheet_name='Productos', index=False)
+    #outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
+    #outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
     for prov in providers:
-        dataProvList = createDataProvList(prov, countMeds)
+        dataProvList = createDataProvList(prov, countProds)
         prov_df = pandas.DataFrame(dataProvList, columns = cols)
         prov_df.to_excel(excel_writer, sheet_name='Lista_'+prov, index=False)
         

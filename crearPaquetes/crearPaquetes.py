@@ -1,21 +1,13 @@
-import sys #, os
+import sys
 sys.path.append(r'../')
 from lib.libclass import *
 from lib.ReportDownloader import *
 import pandas
 from datetime import datetime
-#import re
 
 
-colCosto = 'D'
-colPrecio = 'E'
-colMargen = 'F'
-colMargenx = 'H'
-    
 prodDict = {}
 packDict = {}
-igv = 0.18
-igvC = 1-igv
 
 def getProduct(prod_df, code):
     sub_df = prod_df.loc[prod_df['CÓDIGO'] == code]
@@ -105,114 +97,55 @@ def getPackage(pack_df, code):
         #print(f"Package {code} not found, invalid or deleted")
         return None
 
-def createDataList(prodDict):
-    data = []
-    count = 0
+def checkPackType(pack, prod):
+    pNameLow = pack.getName().lower()
+    if pNameLow.startswith('blister'):
+        cantidadItemBlis = int(pack.items[prod.getCode()])
+        if int(prod.getUnitsBlister())!= cantidadItemBlis:
+            print("WARNING. UnitsBlister different from CANTIDAD (ITEM)")
+    elif pNameLow.startswith('cja'):
+        cantidadItemCja = int(pack.items[prod.getCode()])
+        if int(prod.getUnitsCaja())!= cantidadItemCja:
+            print("WARNING. UnitsCaja different from CANTIDAD (ITEM)")
+    else:
+        print("WARNING invalid pack type ["+pack.getName()+"]") 
 
-    for key, prod in prodDict.items():
-        count = count + 1
-        mcu = '={colP}{rowP}-{colC}{rowC}'.format(colP=colPrecio, rowP=count+1,
-                                                  colC=colCosto, rowC=count+1)
-        mcup = '= {colM}{rowM}/{colP}{rowP}'.format(colM=colMargen, rowM=count+1,
-                                                    colP=colPrecio, rowP=count+1)
-        
-        mcups = 0
-        
-        forma_far = ''
-        is_gen = ''
-        if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
-            #print(prod.getFF())
-            if prod.getFF() in ['TAB', 'CAP', 'TAB_REC']:
-                mcups_r = 0.55
-                mcups = '='+str(mcups_r)
-                #print(mcups)
-            else:
-                mcups_r = 0.3
-                mcups = '='+str(mcups_r)
-            forma_far = prod.getFF()
-            is_gen = prod.isGenerico()
-            
-        else:
-            mcups_r = 0.15
-            mcups = '='+str(mcups_r)
-            if prod.getCategory()=='MEDICAMENTOS':
-                forma_far = prod.getFF()
-                is_gen = prod.isGenerico()
-                
-        presug = '={colC}{rowC}/(1-{colMx}{rowMx})'.format(colC=colCosto, rowC=count+1,
-                                                    colMx=colMargenx, rowMx=count+1)
-        data.append( [prod.getCode(), prod.getName(), prod.getCategory(), prod.getLastCost(),
-                      prod.getPrice(), mcu, mcup, mcups, presug, forma_far, is_gen])
-    return data
 
-def createDataListPack(packDict):
-    data = []
-    count = 0
+"""def computeMCpercent(prod):
+    mcu = prod.getPrice()-prod.getLastCost()
+    mcup = 100*(mcu/prod.getPrice())
+    return round(mcup, 2)
 
-    for key, pack in packDict.items():
-        count = count + 1
-        mcu = '={colP}{rowP}-{colC}{rowC}'.format(colP=colPrecio, rowP=count+1,
-                                                  colC=colCosto, rowC=count+1)
-        mcup = '= {colM}{rowM}/{colP}{rowP}'.format(colM=colMargen, rowM=count+1,
-                                                    colP=colPrecio, rowP=count+1)
-        mcups = 0
-        if pack.getCategory()=='MEDICAMENTOS' and pack.isGenerico():
-            mcups_r = 0.35
-            mcups = '='+str(mcups_r)
-            forma_far = prod.getFF()
-            is_gen = pack.isGenerico()
-        else:
-            mcups_r = 0.15
-            mcups = '='+str(mcups_r)
-        presug = '={colC}{rowC}/(1-{colMx}{rowMx})'.format(colC=colCosto, rowC=count+1,
-                                                    colMx=colMargenx, rowMx=count+1)
-        data.append( [pack.getCode(), pack.getName(), pack.getCategory(), pack.getCost(),
-                      pack.getPrice(), mcu, mcup, mcups, presug, '', ''])
-    return data
+def computePriceBlister(prod):
+    mcup = computeMCpercent(prod)
+    
+    
+def computePriceCja():
+"""
 
-def createDataListToImport(prodDict):
-    data = []
-    count = 0
+def createPackageBlister(prod):
+    cantidadItemBlis = int(prod.getUnitsBlister())
+    packPrice = round(prod.getPrice()*cantidadItemBlis*0.7, 1)
+    packName = "Blister "+prod.getName()+"X"+str(cantidadItemBlis)
+    ls = [ prod.getCode()+"BLI"+str(cantidadItemBlis), packName, "", "UNIDAD",
+        packPrice,  prod.getCategory(), prod.getCode(), prod.getName(),
+        "", prod.getUnidad(), prod.getPrice(), cantidadItemBlis
+    ]
+    print("NUEVO BLISTER: ")
+    print(ls)
+    return ls
 
-    for key, prod in prodDict.items():
-        count = count + 1
-        
-        mcups = 0
-
-        if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
-            if prod.getFF() in ['TAB']:
-                if prod.getLastCost()<=0.5:
-                    mcups = 0.7
-                elif prod.getLastCost()>0.5 and prod.getLastCost()<=0.8:
-                    mcups = 0.67
-                else:
-                    mcups = 0.63
-            else:
-                continue
-        else:
-            continue
-        
-        gan_per = (mcups/(1-mcups))
-        gan_per = round(gan_per, 4)
-        prod.setPorcentajeDeGanancia(gan_per*100)
-        presug = round((1+gan_per)*prod.getLastCost(), 1)
-        prod.setPrice(presug)
-        if presug < 0.5:
-            prod.setPrice(0.5)
-            prod.setPorcentajeDeGanancia('')
-        
-        ls = [ prod.getCode(), prod.getName(), prod.getAlias(), prod.getUnidad(),
-            prod.getPrice(), prod.getLastCost(), prod.getStock(), prod.getNumRegSan(),
-            prod.getBrand(), prod.getDisable(), prod.getCreatedAt(), prod.getGenerico(),
-            prod.getFechaVto(), prod.getNroLote(), prod.getAdicional(), prod.getOtc(),
-            prod.getTempAlm(), prod.getUnitsBlister(), prod.getUnitsCaja(), prod.getMonedaDeVenta(),
-            prod.getMonedaDeCompra(), prod.getConStock(), prod.getCategory(),  prod.getImpuesto(),
-            prod.getPesoBruto(), prod.getMinStock(), prod.getPorcentajeDeGanancia(), prod.getDescuento(),
-            prod.getTipoDeDescuento(), prod.getBusquedaDesdeVentas(), prod.getCategoriaSunat()
-        ]
-        
-        data.append(ls)
-    return data
+def createPackageCja(prod):
+    cantidadItemCja = int(prod.getUnitsCaja())
+    packPrice = round(prod.getPrice()*cantidadItemCja*0.5, 1)
+    packName = "Cja "+prod.getName()+"X"+str(cantidadItemCja)
+    ls = [ prod.getCode()+"CJA"+str(cantidadItemCja), packName, "", "UNIDAD",
+        packPrice,  prod.getCategory(), prod.getCode(), prod.getName(),
+        "", prod.getUnidad(), prod.getPrice(), cantidadItemCja
+    ]
+    print("NUEVA CJA: ")
+    print(ls)
+    return ls
 
 def createDataListToImportPack(prodDict, packDict):
     data = []
@@ -229,34 +162,28 @@ def createDataListToImportPack(prodDict, packDict):
                         if len(pack.itemsObj)==1:
                             hasPack=True
                             print("PROD["+prod.getName()+"] already has pack["+pack.getName()+"].")
-                            cantidadItem = pack.items[prod.getCode()]
-                            ls = [ pack.getCode(), pack.getName(), pack.getAlias(), pack.getUnidad(),
-                                pack.getPrice(),  pack.getCategory(), prod.getCode(), prod.getName(),
-                                prod.getAlias(), prod.getUnidad(), prod.getPrice(), cantidadItem
-                            ]
-                            
-                            data.append(ls)
-                            
-                            if prod.getUnitsBlister()!= cantidadItem:
-                                print("WARNING. UnitsBlister different from CANTIDAD (ITEM)")
+                            # check for type
+                            checkPackType(pack, prod)
                         else:
-                            print("PACK["+pack.getName()+"] has more than 1 item.")
+                            print("WARNING PACK["+pack.getName()+"] has more than 1 item.")
+                # No pack found
                 if not hasPack:
                     print("NO_PACK PROD["+prod.getName()+"] hasn't pack. Create!")
-                    cantidadItem = int(prod.getUnitsBlister())
+                    # crear blister
+                    cantidadItemBlis = int(prod.getUnitsBlister())
+                    if cantidadItemBlis == 1:
+                        print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItemBlis)+"]")
+                    else:
+                        data.append(createPackageBlister(prod))
                     
-                    if cantidadItem == int(prod.getUnitsBlister())==1:
-                        print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItem)+"]")
+                    # crear cja
+                    cantidadItemCja = int(prod.getUnitsCaja())
+                    if cantidadItemCja == 1:
+                        print("WARNING prod["+prod.getName()+"] has unitsCja["+str(cantidadItemCja)+"]")
+                    elif cantidadItemCja == cantidadItemBlis:
                         continue
-                    
-                    packPrice = prod.getPrice()*cantidadItem*0.8
-                    packName = "Blister "+prod.getName()+"X"+str(cantidadItem)
-                    ls = [ prod.getCode()+"BLI"+str(cantidadItem), packName, "", "UNIDAD",
-                        packPrice,  prod.getCategory(), prod.getCode(), prod.getName(),
-                        "", prod.getUnidad(), prod.getPrice(), cantidadItem
-                    ]
-                    data.append(ls)
-                    print(ls)
+                    else:
+                        data.append(createPackageCja(prod))
                     
             else:
                 continue
@@ -324,41 +251,12 @@ for key, prod in prodDict.items():
     else:
         otherDict[key]=prod
 
-dataMeds = createDataList(medsDict)
-dataOther = createDataList(otherDict)
-dataPack = createDataListPack(packDict)
-
-cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'MCu', 
-        'MCup', 'MCups', 'SUGERIDO', 'FF', 'GEN' ]
-
-outMed_df = pandas.DataFrame(dataMeds, columns = cols)
-outOther_df = pandas.DataFrame(dataOther, columns = cols)
-outPack_df = pandas.DataFrame(dataPack, columns = cols)
+#dataMeds = createDataList(medsDict)
+#dataOther = createDataList(otherDict)
+#dataPack = createDataListPack(packDict)
 
 now = datetime.now().strftime("%Y%m%d")
-excel_name = 'PriceSetup_'+now+'.xlsx'
 
-with pandas.ExcelWriter(excel_name) as excel_writer:
-    outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
-    outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
-    outPack_df.to_excel(excel_writer, sheet_name='Paquetes', index=False)
-
-
-cols2 = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "PRECIO DE COMPRA", "CANTIDAD",
-        "num_regsan (EXTRA)", "lab (EXTRA)", "disable (EXTRA)", "creado (EXTRA)", "generico (EXTRA)", "fecha_vto (EXTRA)",
-        "nro_lote (EXTRA)", "adicional (EXTRA)", "otc (EXTRA)", "temp_alm (EXTRA)", "units_blister (EXTRA)",
-        "units_caja (EXTRA)", "MONEDA DE VENTA", "MONEDA DE COMPRA", "CON STOCK", "CATEGORÍA",
-        "IMPUESTO", "PESO BRUTO (KGM)", "STOCK MÍNIMO", "PORCENTAJE DE GANANCIA", "DESCUENTO", "TIPO DE DESCUENTO",
-        "BÚSQUEDA DESDE VENTAS", "CATEGORÍA SUNAT"
-        ]
-
-
-import_prods = createDataListToImport(medsDict)
-import_df = pandas.DataFrame(import_prods, columns = cols2)
-
-excel_name = 'PriceToImport_'+now+'.xlsx'
-with pandas.ExcelWriter(excel_name) as excel_writer:
-    import_df.to_excel(excel_writer, index=False)
 
 cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
           "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"
