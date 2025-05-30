@@ -9,6 +9,7 @@ with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
     user_ = data["user"]
     pass_ = data["password"]
     uri_ = data["uri"]
+    business_ = data["businessId"]
 
 class FileDownloader:
     def __init__(self, init, end):
@@ -45,7 +46,7 @@ class FileDownloader:
     def listPurchases(self):
         for i in range(1,4):
             url2 = uri_+"/purchases/purchases/" \
-                "?page={0}&business=5053&date__gte={1}T05:00:00.000Z&"\
+                "?page={0}&business="+str(business_)+"&date__gte={1}T05:00:00.000Z&"\
                 "date__lte={2}T04:59:59.999Z".format(i, self.initDate, self.endDate)
             
             r = requests.get(url2, headers=self.headers)
@@ -61,7 +62,7 @@ class FileDownloader:
         
 
     def download(self, number, purchase):
-        url3 = uri_+'/v1/purchases/purchases/'+str(purchase)+'/?business=5053'
+        url3 = uri_+'/v1/purchases/purchases/'+str(purchase)+'/?business='+str(business_)
         r = requests.get(url3, headers=self.headers)
         j = r.json()
         print(f"Status Code: {r.status_code}, Response: {r.json()}")
