@@ -51,8 +51,13 @@ class QantuProduct:
         
         if self.minStock < prod.getMinStock():
             self.setMinStock(prod.getMinStock())
-            
-        if self.getLastProvider() is None or (len(self.getLastProvider()) < 2 and len(prod.getLastProvider())>=2):
+        
+        # last provider is NaN
+        if prod.getLastProvider() != prod.getLastProvider():
+            return
+        elif self.getLastProvider() != self.getLastProvider():
+            self.setLastProvider(prod.getLastProvider())
+        elif self.getLastProvider() is None or (len(self.getLastProvider()) < 2 and len(prod.getLastProvider())>=2):
             self.setLastProvider(prod.getLastProvider())
     
     def getCreatedAt(self):

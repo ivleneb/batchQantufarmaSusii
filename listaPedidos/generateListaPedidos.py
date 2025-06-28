@@ -10,7 +10,7 @@ import math
 
 # pedir stock para NBR_DAYS dias
 NBR_DAYS=30
-stock_0 = True
+stock_0 = False
 
 prodDict = {}
 packDict = {}
