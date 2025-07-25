@@ -196,6 +196,7 @@ def createDataListToImport(prodDict):
         gan_per = round(gan_per, 4)
         prod.setPorcentajeDeGanancia(gan_per*100)
         presug = round((1+gan_per)*prod.getLastCost(), 1)
+        print("precio sugerido:"+str(presug))
         prod.setPrice(presug)
         if presug < 0.5:
             prod.setPrice(0.5)
@@ -249,7 +250,7 @@ def createDataListToImportPack(prodDict, packDict):
                         print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItem)+"]")
                         continue
                     
-                    packPrice = prod.getPrice()*cantidadItem*0.8
+                    packPrice = round(prod.getPrice()*cantidadItem*0.8,1)
                     packName = "Blister "+prod.getName()+"X"+str(cantidadItem)
                     ls = [ prod.getCode()+"BLI"+str(cantidadItem), packName, "", "UNIDAD",
                         packPrice,  prod.getCategory(), prod.getCode(), prod.getName(),

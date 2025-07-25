@@ -6,7 +6,7 @@ import math
 class QantuProduct:
     def __init__(self, code, name, stock=None, disable=None,
                  category=None, createdAt=None, minStock=None,
-                 price=None, cost=None, commPer=0.09, otc='Y',
+                 price=None, cost=None, commPer=0.11, otc='Y',
                  alias=None, unidad=None):
         self.name = re.sub(' +', ' ', name)
         self.category = category

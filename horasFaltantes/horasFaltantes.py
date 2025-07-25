@@ -1,9 +1,14 @@
 import sys, os
-sys.path.append(r'F:\proyectos\botica\qantufarma')
+sys.path.append(r'../')
 import pandas
 from datetime import datetime
 from lib.libclass import *
 from lib.ReportDownloader import *
+
+# Read JSON file
+with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+    business_ = data["businessId"]
 
 def getTime(date):
     arr = date.split() # date is in 'dd/MM/YYYY HH:mm' format
@@ -18,6 +23,8 @@ def toMinutes(hhmm):
 
 userRemain = {}
 enterTable = 1000
+if business_ == 8132:
+    enterTable = 700
 tolerance = 15
 def summaryRemainingTime(cashMovementDataFile):
     # dataframe Products
@@ -28,7 +35,7 @@ def summaryRemainingTime(cashMovementDataFile):
         if "inicio" in row["DESCRIPCIÓN"].lower():
             # if morning turn
             timeInt = getTime(row["FECHA"])
-            if timeInt<1400:
+            if timeInt<1300:
                 diff = toMinutes(timeInt)-toMinutes(enterTable)
                 if diff >= 0:
                     if diff > tolerance:

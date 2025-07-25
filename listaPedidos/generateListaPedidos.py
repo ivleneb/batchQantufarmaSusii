@@ -8,6 +8,11 @@ from datetime import timedelta
 import re
 import math
 
+# Read JSON file
+with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+    business_ = data["businessId"]
+
 # pedir stock para NBR_DAYS dias
 NBR_DAYS=30
 stock_0 = False
@@ -582,7 +587,7 @@ cols = ['COD', 'NOMBRE', 'CATEGORIA', 'PA', 'STOCK', 'BRAND', 'PRVDOR', 'COSTO',
 out_df = pandas.DataFrame(dataOut, columns = cols)
 
 now = datetime.now().strftime("%Y%m%d")
-excel_name = 'ListaPedidos_'+now+'.xlsx'
+excel_name = str(business_)+'_ListaPedidos_'+now+'.xlsx'
 
 with pandas.ExcelWriter(excel_name) as excel_writer:
     out_df.to_excel(excel_writer, sheet_name='Productos', index=False)

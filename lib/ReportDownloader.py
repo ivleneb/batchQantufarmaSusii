@@ -60,6 +60,10 @@ class ReportDownloader:
                 "date__lte": self.endDate+"T04:59:59.999Z",
                 "page": 1
             }
+        elif self.code == 'export_sales':
+            self.queryParams = {
+                "page": 1
+                }
         
     def execute(self):
         self.login()
