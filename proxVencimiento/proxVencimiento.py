@@ -4,7 +4,12 @@ from lib.libclass import *
 from lib.ReportDownloader import *
 import pandas
 from datetime import datetime
-#import re
+
+# Read JSON file
+with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+    business_ = data["businessId"]
+
     
 prodDict = {}
 
@@ -110,7 +115,7 @@ outMed_df = pandas.DataFrame(dataMeds, columns = cols)
 outOther_df = pandas.DataFrame(dataOther, columns = cols)
 
 now = datetime.now().strftime("%Y%m%d")
-excel_name = 'ProxVto_'+now+'.xlsx'
+excel_name = str(business_)+'_ProxVto_'+now+'.xlsx'
 
 with pandas.ExcelWriter(excel_name) as excel_writer:
     outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
