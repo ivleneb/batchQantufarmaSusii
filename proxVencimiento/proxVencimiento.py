@@ -87,7 +87,7 @@ print("REG SIZE (prod):"+str(len(prod_df)))
 for index, row in prod_df.iterrows():
     # only add sales that are products
     prod = getProduct(prod_df, row['CÓDIGO'])
-    if prod is not None and not prod.isDisable() and not prod.isNoUsar():
+    if prod is not None:
         # add product to data dict
         if prod.getCode() in prodDict:
             raise Exception("Key must be unique")

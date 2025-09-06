@@ -24,7 +24,7 @@ def toMinutes(hhmm):
 userRemain = {}
 enterTable = 1000
 if business_ == 8132:
-    enterTable = 700
+    enterTable = 900
 tolerance = 15
 def summaryRemainingTime(cashMovementDataFile):
     # dataframe Products

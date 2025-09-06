@@ -9,16 +9,19 @@ class QantuProduct:
                  price=None, cost=None, commPer=0.11, otc='Y',
                  alias=None, unidad=None):
         self.name = re.sub(' +', ' ', name)
+        self.mergedName = self.name
         self.category = category
         self.code = code
         self.disable = disable
         self.stock = stock
         self.lastCost = cost
+        self.mergedLastCost = self.lastCost
         self.price = price
         self.commissionPer = commPer
         self.commission = self.commissionPer*(self.price-self.lastCost)
         self.soldUnits = 0
         self.lastProvider = None
+        self.mergedLastProvider = None
         if createdAt==None or type(createdAt)==float or len(createdAt)==0:
             print("WARNING: Not valid CREATED AT for "+self.name)
             self.createdAt = '2023/05/27'
@@ -43,14 +46,28 @@ class QantuProduct:
         self.unidad = unidad
     
     def merge(self, prod):
+        if self.mergedName == self.name:
+            self.mergedName = self.getUnitsCajaName()
+        
+        # append name according to sale mean
+        if prod.getMergedLastCost() < self.getMergedLastCost():
+            self.setMergedName(prod.getUnitsCajaName() +'\n ó '+self.getMergedName())
+            self.setMergedLastCost(prod.getMergedLastCost())
+            self.setMergedLastProvider(prod.getMergedLastProvider())
+        else:
+            self.setMergedName(self.getMergedName()+'\n ó '+prod.getUnitsCajaName())
+        
+        # update stocks and sold units
         self.addStock(prod.getStock())
         self.addSoldUnits(prod.getSoldUnits())
+        
+        # update active days
         if self.activeDays < prod.getActiveDays():
             self.setCreatedAt(prod.getCreatedAt())
             self.setActiveDays(prod.getActiveDays())
         
-        if self.minStock < prod.getMinStock():
-            self.setMinStock(prod.getMinStock())
+        #if self.minStock < prod.getMinStock():
+        #    self.setMinStock(prod.getMinStock())
         
         # last provider is NaN
         if prod.getLastProvider() != prod.getLastProvider():
@@ -83,6 +100,8 @@ class QantuProduct:
     
     def setLastProvider(self, provider):
         self.lastProvider = provider
+        if self.mergedLastProvider == None:
+            self.mergedLastProvider = self.lastProvider
     
     def getStock(self):
         return self.stock
@@ -107,6 +126,9 @@ class QantuProduct:
     
     def getName(self):
         return self.name
+    
+    def setName(self, name):
+        self.name = name
 
     def getCategory(self):
         return self.category
@@ -295,6 +317,41 @@ class QantuProduct:
     def getTempAlm(self):
         return self.tempAlm
     
+    def getMeanSalePerDay(self):
+        if self.activeDays > 30 :
+            return self.soldUnits/self.activeDays
+        return self.soldUnits/30
+        
+    def getUnitsCajaName(self):
+        if self.getUnitsCaja()!=0:
+            return self.name+" X "+str(int(self.getUnitsCaja()))
+        else:
+            return self.name
+        
+    def getUnitsBlisterName(self):
+        if self.getUnitsBlister()!=0:
+            return self.name+" X "+str(int(self.getUnitsBlister()))
+        else:
+            return self.name
+    
+    def getMergedName(self):
+        return self.mergedName
+    
+    def setMergedName(self, mergedName):
+        self.mergedName = mergedName
+        
+    def getMergedLastCost(self):
+        return self.mergedLastCost
+    
+    def setMergedLastCost(self, mergedLastCost):
+        self.mergedLastCost = mergedLastCost
+        
+    def getMergedLastProvider(self):
+        return self.mergedLastProvider
+    
+    def setMergedLastProvider(self, mergedLastProvider):
+        self.mergedLastProvider = mergedLastProvider
+        
 class QantuSuplement(QantuProduct):
     def __init__(self, code, name, price, cost):
         super().__init__(code=code, name=name, category='SUPLEMENTOS',

@@ -5,6 +5,10 @@ from lib.ReportDownloader import *
 import pandas
 from datetime import datetime
 
+# Read JSON file
+with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+    business_ = data["businessId"]
 
 prodDict = {}
 packDict = {}
@@ -102,11 +106,11 @@ def checkPackType(pack, prod):
     if pNameLow.startswith('blister'):
         cantidadItemBlis = int(pack.items[prod.getCode()])
         if int(prod.getUnitsBlister())!= cantidadItemBlis:
-            print("WARNING. UnitsBlister different from CANTIDAD (ITEM)")
+            print("WARNING. UnitsBlister different from CANTIDAD (ITEM) for "+prod.getName())
     elif pNameLow.startswith('cja'):
         cantidadItemCja = int(pack.items[prod.getCode()])
         if int(prod.getUnitsCaja())!= cantidadItemCja:
-            print("WARNING. UnitsCaja different from CANTIDAD (ITEM)")
+            print("WARNING. UnitsCaja different from CANTIDAD (ITEM) for "+prod.getName())
     else:
         print("WARNING invalid pack type ["+pack.getName()+"]") 
 
@@ -264,6 +268,6 @@ cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA
 
 import_pack = createDataListToImportPack(medsDict, packDict)
 importpk_df = pandas.DataFrame(import_pack, columns = cols3)
-excel_name = 'PriceToImportPack_'+now+'.xlsx'
+excel_name = str(business_)+'_PriceToImportPack_'+now+'.xlsx'
 with pandas.ExcelWriter(excel_name) as excel_writer:
     importpk_df.to_excel(excel_writer, index=False)

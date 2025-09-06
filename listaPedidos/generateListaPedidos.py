@@ -57,8 +57,6 @@ def addSaleData(prod, sale_df):
         row = sub_df.iloc[0]
         # add sale data
         prod.setLastProvider(row['ÚLTIMO PROVEEDOR'])
-        #prod.setLastCost(row['ÚLTIMO PRECIO DE COMPRA'])
-        #prod.setPrice(row['ACTUAL PRECIO DE VENTA'])
         prod.setSoldUnits(row['CANTIDAD TOTAL'])
     elif len(sub_df)==0:
         if(prod.getActiveDays()>90 and prod.getStock()>0):
@@ -444,11 +442,6 @@ def createDataList(prodDict):
         else:
             perVal = 1000
         
-        #if prod.getMinStock() > prod.getStock():
-        #    pV = prod.getMinStock() - prod.getStock()
-        #    if pV>pedirVal:
-        #        pedir = '={val}'.format(val=pV)
-        
         final = '0'
         if prod.getCategory() == 'MEDICAMENTOS':
             final = medsCriteria(prod, pedirVal, perVal)
@@ -470,17 +463,17 @@ def createDataList(prodDict):
         
         l=[]
         
-        pName = prod.getName()
-        if prod.getUnitsCaja()!=0:
-            pName = prod.getName()+" X "+str(int(prod.getUnitsCaja()))
+        #pName = prod.getName()
+        #if prod.getUnitsCaja()!=0:
+        #    pName = prod.getName()+" X "+str(int(prod.getUnitsCaja()))
         
         if prod.getCategory() == 'MEDICAMENTOS':
-            l = [prod.getCode(), pName, prod.getCategory(), prod.getPrincipioActivo(),
+            l = [prod.getCode(), prod.getMergedName(), prod.getCategory(), prod.getPrincipioActivo(),
                      prod.getStock(), prod.getBrand(), prod.getLastProvider(),
                      prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per, prod.getUnitsBlister(), prod.getUnitsCaja(),
                      pedir, final, priceCja, monto]
         else:
-            l = [prod.getCode(), pName, prod.getCategory(), '',
+            l = [prod.getCode(), prod.getMergedName(), prod.getCategory(), '',
                      prod.getStock(), prod.getBrand(), prod.getLastProvider(),
                      prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per, 0, prod.getUnitsCaja(),
                      pedir, final, priceCja, monto]

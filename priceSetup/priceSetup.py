@@ -4,7 +4,11 @@ from lib.libclass import *
 from lib.ReportDownloader import *
 import pandas
 from datetime import datetime
-#import re
+
+# Read JSON file
+with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+    business_ = data["businessId"]
 
 
 colCosto = 'D'
@@ -357,7 +361,7 @@ cols2 = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "PRECIO DE C
 import_prods = createDataListToImport(medsDict)
 import_df = pandas.DataFrame(import_prods, columns = cols2)
 
-excel_name = 'PriceToImport_'+now+'.xlsx'
+excel_name = str(business_)+'_PriceToImport_'+now+'.xlsx'
 with pandas.ExcelWriter(excel_name) as excel_writer:
     import_df.to_excel(excel_writer, index=False)
 
@@ -367,6 +371,6 @@ cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA
 
 import_pack = createDataListToImportPack(medsDict, packDict)
 importpk_df = pandas.DataFrame(import_pack, columns = cols3)
-excel_name = 'PriceToImportPack_'+now+'.xlsx'
+excel_name = str(business_)+'_PriceToImportPack_'+now+'.xlsx'
 with pandas.ExcelWriter(excel_name) as excel_writer:
     importpk_df.to_excel(excel_writer, index=False)

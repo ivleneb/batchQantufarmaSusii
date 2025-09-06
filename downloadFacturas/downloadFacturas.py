@@ -1,5 +1,5 @@
 import sys, os
-sys.path.append(r'F:\proyectos\botica\qantufarma')
+sys.path.append(r'../')
 import pandas
 from datetime import datetime
 from lib.libclass import *
