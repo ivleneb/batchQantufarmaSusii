@@ -1,10 +1,13 @@
 import requests
 import time
+import os
 
 import json
 
 # Read JSON file
-with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+script_dir = os.path.dirname(os.path.abspath(__file__))
+ruta_completa = os.path.join(script_dir, "", "cfg.json")
+with open(ruta_completa, 'r', encoding='utf-8') as file:
     data = json.load(file)
     user_ = data["user"]
     pass_ = data["password"]

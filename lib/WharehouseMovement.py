@@ -74,7 +74,7 @@ class AdjustClassifier:
     def __init__(self, move: WharehouseMovement):
         self.type = 'NO_TYPE'
         
-        if move.getType()== 'ADJUST':
+        if move.getMoveType()== 'ADJUST':
             
             obser = move.getObs()
         

@@ -51,17 +51,41 @@ def remove_lab(input_string):
     s =re.sub(r'\[.*?\]', '', input_string)
     return s.strip()
 
+def defaultProviders(prod):
+    if prod.getCategory() in ['MEDICAMENTOS', 'SUPLEMENTOS']:
+        return "V&G pref"
+    elif prod.getCategory()=='LIMPIEZA':
+        return "VEGA pref"
+    elif prod.getCategory()=='OFICINA':
+        return "OFICINA pref"
+    elif prod.getCategory()=='WEARABLES':
+        return "ELECTRO pref"
+    elif prod.getCategory()=='ALIMENTOS' and 'CHOCO' in prod.getName():
+        return "LINAJE pref"
+    elif prod.getCategory()=='ALIMENTOS' and (not 'CHOCO' in prod.getName() and not 'ACEITE' in prod.getName()):
+        return "UNION pref"
+    elif prod.getCategory()=='ADULTO MAYOR':
+        return "CBC pref"
+    else:
+        return "LIMACENTER pref"
+
 def addSaleData(prod, sale_df):
     sub_df = sale_df.loc[sale_df['CÓDIGO'] == prod.getCode()]
     if len(sub_df)==1:
         row = sub_df.iloc[0]
         # add sale data
-        prod.setLastProvider(row['ÚLTIMO PROVEEDOR'])
         prod.setSoldUnits(row['CANTIDAD TOTAL'])
+        # add provider data
+        if type(row['ÚLTIMO PROVEEDOR'])!=float and len(row['ÚLTIMO PROVEEDOR'])!=0:
+            prod.setLastProvider(row['ÚLTIMO PROVEEDOR'])
+        else:
+            prod.setLastProvider(defaultProviders(prod))
+        
     elif len(sub_df)==0:
         if(prod.getActiveDays()>90 and prod.getStock()>0):
             print("Product ["+prod.getName()+"] never sale!")
         prod.setSoldUnits(0)
+        prod.setLastProvider(defaultProviders(prod))
     else:
         print(sub_df)
         print("Code with multiple products.")
@@ -79,7 +103,7 @@ def addSaleData(prod, sale_df):
         #prod.setLastCost(row['ÚLTIMO PRECIO DE COMPRA'])
         #prod.setPrice(row['ACTUAL PRECIO DE VENTA'])
         prod.setSoldUnits(soldUnits)
-        
+        prod.setLastProvider(defaultProviders(prod))
         #raise Exception("Code with multiple products.")
 
 def getProduct(row):
@@ -579,7 +603,7 @@ cols = ['COD', 'NOMBRE', 'CATEGORIA', 'PA', 'STOCK', 'BRAND', 'PRVDOR', 'COSTO',
 #outOther_df = pandas.DataFrame(dataOther, columns = cols)
 out_df = pandas.DataFrame(dataOut, columns = cols)
 
-now = datetime.now().strftime("%Y%m%d")
+now = datetime.now().strftime("%Y%m%d_%H%M")
 excel_name = str(business_)+'_ListaPedidos_'+now+'.xlsx'
 
 with pandas.ExcelWriter(excel_name) as excel_writer:

@@ -237,7 +237,7 @@ def process(move, prevMove, usoInterno, traslado, validAdjust, invalidAdjust, ex
         elif typ == 'TRANSFER':
             traslado += processTransfer(move)
         elif typ == 'ADJUST':
-            isValid, mat = processAdjust(move)
+            isValid, mat = processAdjust(move, prevMove)
             if isValid:
                 validAdjust += mat
             else:
