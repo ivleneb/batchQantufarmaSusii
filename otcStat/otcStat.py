@@ -1,11 +1,12 @@
 import sys, os
-sys.path.append(r'F:\proyectos\botica\qantufarma')
+sys.path.append(r'../')
 from lib.libclass import *
 from lib.ReportDownloader import *
 import pandas
 from datetime import datetime
 from datetime import timedelta
 import re
+import math
 
 # pedir stock para NBR_DAYS dias
 NBR_DAYS=30

@@ -92,11 +92,14 @@ class WarehouseMovementReport():
                     addFlag = True
                     break
             print("Check if it's matched.")
-            if mov1.isMatched() and addFlag:
+            if mov1.isMatched() and not addFlag:
+                print("Movement ALREADY matched:"+str(mov1.getNumber()))
+            elif mov1.isMatched() and addFlag:
                 print("MATCHED!")
                 ls+=mov1.getData()
                 ls+=mov1.getMatchedMove().getData()
                 ls+=mov1.getMatchedSummary()
             elif not mov1.isMatched():
+                print("Movement NOT matched:"+str(mov1.getNumber()))
                 ls+=mov1.getData()
         return ls

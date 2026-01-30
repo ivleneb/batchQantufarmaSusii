@@ -1,20 +1,27 @@
 import sys
 sys.path.append(r'../')
-from lib.libclass import *
+#from lib.libclass import *
+from lib.libclass import QantuProduct
+from lib.libclass import QantuPackage
+from lib.libclass import QantuMedicine
+from lib.libclass import QantuGalenico
+from lib.libclass import QantuDevice
+from lib.libclass import QantuGeneral
+from lib.PriceManager import PriceManager
 from lib.ReportDownloader import *
 import pandas
 from datetime import datetime
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    business_ = data["businessId"]
+    cfgData = json.load(file)
+    business_ = cfgData["businessId"]
 
-prodDict = {}
-packDict = {}
+productsDict: dict[str, QantuProduct] = {}
+packageDict: dict[str, QantuPackage] = {}
 
-def getProduct(prod_df, code):
-    sub_df = prod_df.loc[prod_df['CÓDIGO'] == code]
+def getProduct(df, code):
+    sub_df = df.loc[df['CÓDIGO'] == code]
     if len(sub_df)==1:
         row = sub_df.iloc[0]
         prod = None
@@ -73,7 +80,7 @@ def getProduct(prod_df, code):
         raise Exception("Code with multiple products.")
     
 
-def getPackage(pack_df, code):
+def getPackage(prodDict, pack_df, code):
     sub_df = pack_df.loc[pack_df['CÓDIGO'] == code]
     if len(sub_df)>0:
         row = sub_df.iloc[0]
@@ -114,23 +121,16 @@ def checkPackType(pack, prod):
     else:
         print("WARNING invalid pack type ["+pack.getName()+"]") 
 
-
-"""def computeMCpercent(prod):
-    mcu = prod.getPrice()-prod.getLastCost()
-    mcup = 100*(mcu/prod.getPrice())
-    return round(mcup, 2)
-
-def computePriceBlister(prod):
-    mcup = computeMCpercent(prod)
-    
-    
-def computePriceCja():
-"""
-
 def createPackageBlister(prod):
     cantidadItemBlis = int(prod.getUnitsBlister())
-    packPrice = round(prod.getPrice()*cantidadItemBlis*0.7, 1)
+    #packPrice = round(prod.getPrice()*cantidadItemBlis*0.7, 1)
+    price = PriceManager.computeProductBlisterPrice(prod)
+    if price is None:
+        print("ERROR Failed to compute blister price for prod "+prod.getName())
+        return []
+    
     packName = "Blister "+prod.getName()+"X"+str(cantidadItemBlis)
+    packPrice = price.getValue()
     ls = [ prod.getCode()+"BLI"+str(cantidadItemBlis), packName, "", "UNIDAD",
         packPrice,  prod.getCategory(), prod.getCode(), prod.getName(),
         "", prod.getUnidad(), prod.getPrice(), cantidadItemBlis
@@ -141,8 +141,14 @@ def createPackageBlister(prod):
 
 def createPackageCja(prod):
     cantidadItemCja = int(prod.getUnitsCaja())
-    packPrice = round(prod.getPrice()*cantidadItemCja*0.5, 1)
+    #packPrice = round(prod.getPrice()*cantidadItemCja*0.5, 1)
+    price = PriceManager.computeProductCajaPrice(prod)
+    if price is None:
+        print("ERROR Failed to compute caja price for prod "+prod.getName())
+        return []
+    
     packName = "Cja "+prod.getName()+"X"+str(cantidadItemCja)
+    packPrice = price.getValue()
     ls = [ prod.getCode()+"CJA"+str(cantidadItemCja), packName, "", "UNIDAD",
         packPrice,  prod.getCategory(), prod.getCode(), prod.getName(),
         "", prod.getUnidad(), prod.getPrice(), cantidadItemCja
@@ -158,7 +164,8 @@ def createDataListToImportPack(prodDict, packDict):
     for key, prod in prodDict.items():
         count = count + 1
 
-        if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
+        #if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
+        if prod.getCategory()=='MEDICAMENTOS':
             if prod.getFF() in ['TAB']:
                 hasPack=False
                 for key, pack in packDict.items():
@@ -178,7 +185,9 @@ def createDataListToImportPack(prodDict, packDict):
                     if cantidadItemBlis == 1:
                         print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItemBlis)+"]")
                     else:
-                        data.append(createPackageBlister(prod))
+                        ls = createPackageBlister(prod)
+                        if len(ls)!=0:
+                            data.append(ls)
                     
                     # crear cja
                     cantidadItemCja = int(prod.getUnitsCaja())
@@ -187,7 +196,9 @@ def createDataListToImportPack(prodDict, packDict):
                     elif cantidadItemCja == cantidadItemBlis:
                         continue
                     else:
-                        data.append(createPackageCja(prod))
+                        ls = createPackageCja(prod)
+                        if len(ls)!=0:
+                            data.append(ls)
                     
             else:
                 continue
@@ -195,79 +206,108 @@ def createDataListToImportPack(prodDict, packDict):
             continue
     return data
 
-
-
-today = datetime.now().strftime("%Y-%m-%d")
-
-# download product data
-repHeaders = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "PRECIO DE COMPRA", "CANTIDAD",
-        "num_regsan (EXTRA)", "lab (EXTRA)", "disable (EXTRA)", "creado (EXTRA)", "generico (EXTRA)", "fecha_vto (EXTRA)",
-        "nro_lote (EXTRA)", "adicional (EXTRA)", "otc (EXTRA)", "temp_alm (EXTRA)", "units_blister (EXTRA)",
-        "units_caja (EXTRA)", "MONEDA DE VENTA", "MONEDA DE COMPRA", "CON STOCK", "CATEGORÍA",
-        "IMPUESTO", "PESO BRUTO (KGM)", "STOCK MÍNIMO", "PORCENTAJE DE GANANCIA", "DESCUENTO", "TIPO DE DESCUENTO",
-        "BÚSQUEDA DESDE VENTAS", "CATEGORÍA SUNAT"]
-rd = ReportDownloader("Exportar productos.xlsx", "export_products",
-                      repHeaders, '2024-02-12',
-                      today)
-file_prod = rd.execute()
-if file_prod == "":
-    sys.exit("Can't dowloand file[Exportar productos.xlsx]")
-
-#download package data
-repHeaders = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
-          "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"]
-rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
-                      repHeaders, '2024-02-12',
-                      today)
-file_pack = rd.execute()
-if file_pack == "":
-    sys.exit("Can't dowloand file[Exportar productos.xlsx]")
-
-prod_df = pandas.read_excel(file_prod, skiprows=4)
-print("REG SIZE (prod):"+str(len(prod_df)))
-
-pack_df = pandas.read_excel(file_pack, skiprows=4)
-print("REG SIZE (prod):"+str(len(prod_df)))
-
-# Load products
-for index, row in prod_df.iterrows():
-    # only add sales that are products
-    prod = getProduct(prod_df, row['CÓDIGO'])
-    if prod is not None and not prod.isDisable():
-        # add product to data dict
-        if prod.getCode() in prodDict:
-            raise Exception("Key must be unique")
-        prodDict[prod.getCode()]=prod
-
-# Load packages
-for key, row in pack_df.iterrows():
-    # only add sales that are products
-    pack = getPackage(pack_df, row['CÓDIGO'])
-    if pack is not None:
-        packDict[pack.getCode()]=pack
-
-
-medsDict = {}
-otherDict = {}
-for key, prod in prodDict.items():
-    if prod.getCategory()=='MEDICAMENTOS':
-        medsDict[key]=prod
+def isNumeric(col, df):
+    if col in df.columns:
+        es_numerica = pandas.api.types.is_numeric_dtype(df[col])
+        return es_numerica
     else:
-        otherDict[key]=prod
+        return False
+    
 
-#dataMeds = createDataList(medsDict)
-#dataOther = createDataList(otherDict)
-#dataPack = createDataListPack(packDict)
+def run():
+    today = datetime.now().strftime("%Y-%m-%d")
 
-now = datetime.now().strftime("%Y%m%d")
+    # download product data
+    repHeaders = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "PRECIO DE COMPRA", "CANTIDAD",
+            "num_regsan (EXTRA)", "lab (EXTRA)", "disable (EXTRA)", "creado (EXTRA)", "generico (EXTRA)", "fecha_vto (EXTRA)",
+            "nro_lote (EXTRA)", "adicional (EXTRA)", "otc (EXTRA)", "temp_alm (EXTRA)", "units_blister (EXTRA)",
+            "units_caja (EXTRA)", "MONEDA DE VENTA", "MONEDA DE COMPRA", "CON STOCK", "CATEGORÍA",
+            "IMPUESTO", "PESO BRUTO (KGM)", "STOCK MÍNIMO", "PORCENTAJE DE GANANCIA", "DESCUENTO", "TIPO DE DESCUENTO",
+            "BÚSQUEDA DESDE VENTAS", "CATEGORÍA SUNAT"]
+    rd = ReportDownloader("Exportar productos.xlsx", "export_products",
+                          repHeaders, '2024-02-12',
+                          today)
+    file_prod = rd.execute()
+    if file_prod == "":
+        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+
+    #download package data
+    repHeaders = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
+              "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"]
+    rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
+                          repHeaders, '2024-02-12',
+                          today)
+    file_pack = rd.execute()
+    if file_pack == "":
+        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+
+    prod_df = pandas.read_excel(file_prod, skiprows=4)
+
+    if not isNumeric('generico (EXTRA)', prod_df):
+        print("Columna 'generico (EXTRA)' tiene valores no numéricos.")
+        sys.exit(1)
+
+    if not isNumeric('units_blister (EXTRA)', prod_df):
+        print("Columna 'units_blister (EXTRA)' tiene valores no numéricos.")
+        sys.exit(2)
+    else:
+        prod_df["units_blister (EXTRA)"] = prod_df["units_blister (EXTRA)"].fillna(0)
+
+    if not isNumeric('units_caja (EXTRA)', prod_df):
+        print("Columna 'units_caja (EXTRA)' tiene valores no numéricos.")
+        sys.exit(3)
+    else:
+        prod_df['units_caja (EXTRA)'] = prod_df['units_caja (EXTRA)'].fillna(0)
+
+    print("REG SIZE (prod):"+str(len(prod_df)))
+
+    pack_df = pandas.read_excel(file_pack, skiprows=4)
+    print("REG SIZE (prod):"+str(len(prod_df)))
+
+    # Load products
+    for index, row in prod_df.iterrows():
+        # only add sales that are products
+        prod = getProduct(prod_df, row['CÓDIGO'])
+        if prod is not None and not prod.isDisable():
+            # add product to data dict
+            if prod.getCode() in productsDict:
+                raise Exception("Index["+str(index)+"] Key must be unique")
+            productsDict[prod.getCode()]=prod
+
+    # Load packages
+    for key, row in pack_df.iterrows():
+        # only add sales that are products
+        pack = getPackage(productsDict, pack_df, row['CÓDIGO'])
+        if pack is not None:
+            packageDict[pack.getCode()]=pack
+        else:
+            print("WARN Key["+str(key)+"] pack is None.")
+
+    medsDict = {}
+    otherDict = {}
+    for key, prod in productsDict.items():
+        if prod.getCategory()=='MEDICAMENTOS':
+            medsDict[key]=prod
+        else:
+            otherDict[key]=prod
+
+    #dataMeds = createDataList(medsDict)
+    #dataOther = createDataList(otherDict)
+    #dataPack = createDataListPack(packDict)
+
+    now = datetime.now().strftime("%Y%m%d")
 
 
-cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
-          "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"
-    ]
+    cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
+              "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"
+        ]
 
-import_pack = createDataListToImportPack(medsDict, packDict)
-importpk_df = pandas.DataFrame(import_pack, columns = cols3)
-excel_name = str(business_)+'_PriceToImportPack_'+now+'.xlsx'
-with pandas.ExcelWriter(excel_name) as excel_writer:
-    importpk_df.to_excel(excel_writer, index=False)
+    import_pack = createDataListToImportPack(medsDict, packageDict)
+    importpk_df = pandas.DataFrame(import_pack, columns = cols3)
+    excel_name = str(business_)+'_PriceToImportPack_'+now+'.xlsx'
+    with pandas.ExcelWriter(excel_name) as excel_writer:
+        importpk_df.to_excel(excel_writer, index=False)
+
+
+
+run()

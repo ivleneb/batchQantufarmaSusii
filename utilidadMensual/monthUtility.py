@@ -18,6 +18,12 @@ colMargen = 'H'
 
 IGV=0.18
 
+# Read JSON file
+with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+    business_ = data["businessId"]
+
+
 def addSaleData(prod, sale_df):
     sub_df = sale_df.loc[sale_df['CÓDIGO'] == prod.getCode()]
     if len(sub_df)==1:
@@ -240,7 +246,7 @@ sum_df = pandas.DataFrame([sum_row], columns=out2_df.columns)
 out2_df = pandas.concat([out2_df, sum_df], ignore_index=True)
 
 now = datetime.now().strftime("%Y%m%d")
-excel_name = 'Utilidad_'+now+'.xlsx'
+excel_name = str(business_)+'_Utilidad_'+year+month+'_'+now+'.xlsx'
 
 with pandas.ExcelWriter(excel_name) as excel_writer:
     out_df.to_excel(excel_writer, sheet_name='Utilidad', index=False)

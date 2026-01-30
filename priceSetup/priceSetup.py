@@ -7,8 +7,8 @@ from datetime import datetime
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    business_ = data["businessId"]
+    cfgData = json.load(file)
+    business_ = cfgData["businessId"]
 
 
 colCosto = 'D'
@@ -174,6 +174,30 @@ def createDataListPack(packDict):
                       pack.getPrice(), mcu, mcup, mcups, presug, '', ''])
     return data
 
+def priceMedicamentos(prod):
+    mcups = 0.0
+    if prod.isGenerico():
+        if prod.getFF() in ['TAB']:
+            if prod.getLastCost()<=0.5:
+                mcups = 0.7
+            elif prod.getLastCost()>0.5 and prod.getLastCost()<=0.8:
+                mcups = 0.67
+            else:
+                mcups = 0.63
+        else:
+            mcups = 0.15
+    else:
+        if prod.getFF() in ['TAB']:
+            mcups = 0.30
+        else:
+            mcups = 0.15
+            
+    return mcups
+    
+def priceGeneral(prod):
+    mcups = 0.10
+    return mcups
+
 def createDataListToImport(prodDict):
     data = []
     count = 0
@@ -182,26 +206,39 @@ def createDataListToImport(prodDict):
         count = count + 1
         
         mcups = 0
-
-        if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
-            if prod.getFF() in ['TAB']:
-                if prod.getLastCost()<=0.5:
-                    mcups = 0.7
-                elif prod.getLastCost()>0.5 and prod.getLastCost()<=0.8:
-                    mcups = 0.67
-                else:
-                    mcups = 0.63
-            else:
-                continue
-        else:
+        
+        if prod.getLastCost()<=0.0:
+            print("Prodcut without cost "+prod.getName())
             continue
+        
+        if prod.getCategory()=='MEDICAMENTOS':
+            mcups = priceMedicamentos(prod)
+        else:
+            # ignore products
+            ls = ['PAPEL', 'PAÑAL']
+            ignore = True
+            for keyname in ls:
+                if keyname in prod.getName():
+                    ignore = False
+                    break
+            if ignore:
+                print("Ignore product "+prod.getName())
+                continue
+            
+            # general margin
+            mcups = priceGeneral(prod)
         
         gan_per = (mcups/(1-mcups))
         gan_per = round(gan_per, 4)
         prod.setPorcentajeDeGanancia(gan_per*100)
         presug = round((1+gan_per)*prod.getLastCost(), 1)
         print("precio sugerido:"+str(presug))
-        prod.setPrice(presug)
+        if presug<=prod.getPrice():
+            print("Product has a better price than logic "+prod.getName())
+            continue
+        else:
+            prod.setPrice(presug)
+            
         if presug < 0.5:
             prod.setPrice(0.5)
             prod.setPorcentajeDeGanancia('')
@@ -332,7 +369,7 @@ for key, prod in prodDict.items():
 dataMeds = createDataList(medsDict)
 dataOther = createDataList(otherDict)
 dataPack = createDataListPack(packDict)
-
+    
 cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'MCu', 
         'MCup', 'MCups', 'SUGERIDO', 'FF', 'GEN' ]
 
@@ -365,12 +402,12 @@ excel_name = str(business_)+'_PriceToImport_'+now+'.xlsx'
 with pandas.ExcelWriter(excel_name) as excel_writer:
     import_df.to_excel(excel_writer, index=False)
 
-cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
-          "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"
-    ]
+#cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
+#          "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"
+#    ]
 
-import_pack = createDataListToImportPack(medsDict, packDict)
-importpk_df = pandas.DataFrame(import_pack, columns = cols3)
-excel_name = str(business_)+'_PriceToImportPack_'+now+'.xlsx'
-with pandas.ExcelWriter(excel_name) as excel_writer:
-    importpk_df.to_excel(excel_writer, index=False)
+#import_pack = createDataListToImportPack(medsDict, packDict)
+#importpk_df = pandas.DataFrame(import_pack, columns = cols3)
+#excel_name = str(business_)+'_PriceToImportPack_'+now+'.xlsx'
+#with pandas.ExcelWriter(excel_name) as excel_writer:
+#    importpk_df.to_excel(excel_writer, index=False)

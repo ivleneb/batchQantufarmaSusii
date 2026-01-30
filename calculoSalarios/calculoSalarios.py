@@ -9,6 +9,32 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
+def sellerPlusPlusBonification(prevSales, sales):
+    if prevSales<sales:
+        per = 100*(sales/prevSales-1)
+        print("Percentage increase:"+str(per))
+        if per<5.0:
+            print("No vendedor++")
+            return 0.0
+        elif per<7.5:
+            print("Vendedor plus++ +20")
+            return 25.0
+        elif per<10.0:
+            print("Vendedor plus++ +50")
+            return 50.0
+        elif per<20.0:
+            print("Vendedor plus++ +100")
+            return 100.0
+        elif per<30.0:
+            print("Vendedor plus++ +200")
+            return 200.0
+        else:
+            print("Vendedor plus++ +300")
+            return 300.0
+    else:
+        print("No vendedor++")
+        return 0.0
+
 def weekHoursBasedSalary(hours, base, baseHours):
     return base*hours/baseHours
 
@@ -54,7 +80,7 @@ def dataframe_to_pdf(header, footer, data, filename):
     elements = [table]
     doc.build(elements)
 
-users: dict[str, list] = {"ruth":[],"jenny":[],"miriam":[], "xiomara":[],"yovana":[]}
+users: dict[str, list] = {"ruth":[],"jenny":[],"miriam":[], "xiomara":[],"yovana":[], "rosangela":[]}
 
 # dias laborables en un mes
 diasLaborales = 30.0
@@ -66,99 +92,147 @@ horasSemanalesBase = 48.00
 
 
 horasQ1 = {
-    "ruth": 30.00,
-    "miriam": 30.00,
-    "jenny": 24.00,
+    "ruth": 39.00,
+    "rosangela": 13.00,
+    "jenny": 39.00,
     }
 
+#horasQ1_2 = {
+#    "ruth": 39.00,
+#    "jenny": 39.00,
+#    }
+
 horasQ2 = {
-    "ruth": 13.00,
-    "jenny": 6.50,
-    "xiomara": 35.75,
-    "yovana": 35.75,
+    "xiomara": 21,
+    "yovana": 21,
+    "rosangela": 7
     }
 
 # Q1
 print("Q1--------------------------")
-salarioOperativoQ1 = round(salarioBase*7.0*12.0/horasSemanalesBase,2)
+salarioOperativoQ1 = round(salarioBase*7.0*13.0/horasSemanalesBase,2)
 salarioOperativoDiarioQ1 = round(salarioOperativoQ1/diasLaborales,2)
 print("Salario operativo:"+str(salarioOperativoQ1))
 print("Salario Diario operativo:"+str(salarioOperativoDiarioQ1))
+#salarioOperativoQ1_2 = round(salarioBase*7.0*13.0/horasSemanalesBase,2)
+#salarioOperativoDiarioQ1_2 = round(salarioOperativoQ1_2/diasLaborales,2)
+#print("Salario operativo:"+str(salarioOperativoQ1_2))
+#print("Salario Diario operativo:"+str(salarioOperativoDiarioQ1_2))
 
 
 print("Salarios")
 for user in horasQ1:
     salario = round(weekHoursBasedSalary(horasQ1[user], salarioBase, horasSemanalesBase),2)
-    if user=='jenny':
-        salario = 750.00
+    #if user=='jenny':
+    #    salario = 750.00*0.5
     print(user+" "+str(salario))
-    users[user].append(['monto fijo', 'Q1', salario])
+    users[user].append(['monto fijo', 'Q1 1era quincena', salario])
+
+#for user in horasQ1_2:
+#    salario = round(weekHoursBasedSalary(horasQ1_2[user], salarioBase, horasSemanalesBase),2)*0.5
+#    print(user+" "+str(salario))
+#    users[user].append(['monto fijo', 'Q1 2da quincena', salario])
+
+#print("Inasistencias")
+#users['rosangela'].append(['cobertura full day', 'Q1 29/oct', salarioOperativoDiarioQ1_2])
+#users['miriam'].append(['cobertura full day', 'Q1 22/oct', salarioOperativoDiarioQ1_2])
+#users['ruth'].append(['inasistencia full day', 'Q1 23/oct', -salarioOperativoDiarioQ1_2])
 
 print("Feriados")
-users['jenny'].append(['feriado', 'Q1 30/ago', salarioOperativoDiarioQ1])
-users['ruth'].append(['feriado', 'Q1 06/ago', salarioOperativoDiarioQ1])
+#users['rosangela'].append(['feriado', 'Q1 01/nov', salarioOperativoDiarioQ1])
+users['jenny'].append(['feriado', 'Q1 08/dic', salarioOperativoDiarioQ1])
+users['ruth'].append(['feriado', 'Q1 09/dic', salarioOperativoDiarioQ1])
+users['jenny'].append(['feriado', 'Q1 29/jul', 70.0])
+users['ruth'].append(['feriado', 'Q1 28/jul', 70.0])
 
 print("Pérdidas por Ajustes")
-lossAdjust = round(-3.60,2)
-users['jenny'].append(['perdidas por ajuste', 'Q1 01-agosto al 30-agosto', lossAdjust])
-users['miriam'].append(['perdidas por ajuste', 'Q1 01-agosto al 30-agosto', lossAdjust])
-users['ruth'].append(['perdidas por ajuste', 'Q1 01-agosto al 30-agosto', lossAdjust])
+lossAdjust = round(-11.42-0.1-1.71,2)
+users['jenny'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
+users['rosangela'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
+users['ruth'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
 
-print("Pérdidas por Productos vencidos")
-lossExpired = -32.13
-users['jenny'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
-users['miriam'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
-users['ruth'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
+#print("Pérdidas por Productos vencidos")
+#lossExpired = -32.13
+#users['jenny'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
+#users['miriam'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
+#users['ruth'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
 
 print("Comisiones ventas")
-users['jenny'].append(['Comisiones ventas', 'Q1 01-agosto al 31-agosto', 146.52])
-users['miriam'].append(['Comisiones ventas', 'Q1 01-agosto al 31-agosto', 160.41])
-users['ruth'].append(['Comisiones ventas', 'Q1 01-agosto al 31-agosto', 159.07])
+#jennySalesB = 3986.48
+#ruthSalesB = 4613.9
+#miriamSalesB = 4678.17
+#jennySales = 4447.94
+#ruthSales = 4950.93
+#miriamSales = 4474.02
+users['jenny'].append(['Comisiones ventas', 'Q1 01-noviembre al 30-noviembre', 165.51])
+#users['miriam'].append(['Comisiones ventas', 'Q1 01-noviembre al 30-noviembre', 98.21])
+users['ruth'].append(['Comisiones ventas', 'Q1 01-noviembre al 30-noviembre', 124.15])
+users['rosangela'].append(['Comisiones ventas', 'Q1 01-noviembre al 30-noviembre', 45.02])
 
+print("Adelantos")
+users['ruth'].append(['adelanto', 'Q1 quincena', round(-500.00,2)])
+users['jenny'].append(['adelanto', 'Q1 quincena', round(-600.00,2)])
+users['jenny'].append(['adelanto', 'Q1 30-dic', round(-600.00,2)])
+
+#bon = sellerPlusPlusBonification(jennySalesB, jennySales)
+#if bon>0:
+#    users['jenny'].append(['Incentivo vendedor++', 'Q1 01-setiembre al 30-setiembre', bon])
+
+#bon = sellerPlusPlusBonification(ruthSalesB, ruthSales)
+#if bon>0:
+#    users['ruth'].append(['Incentivo vendedor++', 'Q1 01-setiembre al 30-setiembre', bon])
+    
+#bon = sellerPlusPlusBonification(miriamSalesB, miriamSales)
+#if bon>0:
+#    users['miriam'].append(['Incentivo vendedor++', 'Q1 01-setiembre al 30-setiembre', bon])
 
 print("Q2--------------------------")
 
-salarioOperativoQ2 = round(salarioBase*7.0*13.0/horasSemanalesBase,2)
+salarioOperativoQ2 = round(salarioBase*7.0*7.0/horasSemanalesBase,2)
 salarioOperativoDiarioQ2 = round(salarioOperativoQ2/diasLaborales,2)
 print("Salario operativo:"+str(salarioOperativoQ2))
 print("Salario Diario operativo:"+str(salarioOperativoDiarioQ2))
 
 
 print("Salarios")
-salarioQ2Ruth = 0.0
 for user in horasQ2:
     salario = round(weekHoursBasedSalary(horasQ2[user], salarioBase, horasSemanalesBase),2)
-    if user=='ruth':
-        salarioQ2Ruth = salario
     print(user+" "+str(salario))
     users[user].append(['monto fijo', 'Q2', salario])
 
 
-print("Ajustes")
-print("Reemplazo ruth por jenny")
-salarioQ2RuthXdia = round(salarioQ2Ruth/standardWeeks,2)
+#print("Ajustes")
+#print("Angela inasistencia")
+#salarioQ2RosangelaXdia = round(users['rosangela'][0][2]/standardWeeks,2)
 
-users['ruth'].append(['descuento por inasistencia full day', 'Q2 26/ago', -salarioQ2RuthXdia])
-users['jenny'].append(['abono por cubrir horario full day', 'Q2 26/ago', +salarioQ2RuthXdia])
+#users['rosangela'].append(['inasistencia full day', 'Q2 06/set', -salarioQ2RosangelaXdia])
+#users['rosangela'].append(['inasistencia full day', 'Q2 27/set', -salarioQ2RosangelaXdia])
+#users['jenny'].append(['abono por cubrir horario full day', 'Q2 26/ago', +salarioQ2RuthXdia])
 
-print("Feriado xiomara")
-users['xiomara'].append(['feriado', 'Q2 06/ago', round(salarioOperativoDiarioQ2*0.5,2)])
-users['xiomara'].append(['feriado', 'Q2 30/ago', round(salarioOperativoDiarioQ2*0.5,2)])
-print("Feriado yovana")
-users['yovana'].append(['feriado', 'Q2 06/ago', round(salarioOperativoDiarioQ2*0.5,2)])
-users['yovana'].append(['feriado', 'Q2 30/ago', round(salarioOperativoDiarioQ2*0.5,2)])
+print("Feriados")
+#print("Feriado xiomara")
+users['xiomara'].append(['feriado', 'Q2 08/dic', round(salarioOperativoDiarioQ2,2)])
+users['xiomara'].append(['feriado', 'Q2 28-29/jul', round(salarioOperativoDiarioQ2,2)*2])
+#print("Feriado yovana")
+users['yovana'].append(['feriado', 'Q2 09/dic', round(salarioOperativoDiarioQ2,2)])
+users['yovana'].append(['feriado', 'Q2 28-29/jul', round(salarioOperativoDiarioQ2,2)*2])
+#users['rosangela'].append(['feriado', 'Q2 01/nov', round(salarioOperativoDiarioQ2,2)])
 
-print("Pasajes")
-users['ruth'].append(['Bono pasaje', 'Q2', 15.0])
-users['jenny'].append(['Bono pasaje', 'Q2', 25.0])
+#print("Pasajes")
+#users['ruth'].append(['Bono pasaje', 'Q2', 15.0])
+#users['jenny'].append(['Bono pasaje', 'Q2', 25.0])
 
 
 print("Pérdidas por Ajustes")
-users['xiomara'].append(['perdidas por ajuste', 'Q2 01-agosto al 30-agosto', -31.75])
-users['yovana'].append(['perdidas por ajuste', 'Q2 01-agosto al 30-agosto', -21.95])
+lossAdjust = round(-3.83-0.17,2)
+users['xiomara'].append(['perdidas por ajuste', 'Q2 01-noviembre al 29-noviembre', round(lossAdjust,2)])
+users['yovana'].append(['perdidas por ajuste', 'Q2 01-noviembre al 29-noviembre', round(lossAdjust,2)])
+users['rosangela'].append(['perdidas por ajuste', 'Q2 01-noviembre al 29-noviembre', round(lossAdjust,2)])
 
 print("Adelantos")
-users['yovana'].append(['adelanto', 'Q2 quincena', -450.00])
+users['yovana'].append(['adelanto', 'Q2 quincena', round(-200.00,2)])
+users['xiomara'].append(['adelanto', 'Q2 quincena', round(-200.00,2)])
+users['rosangela'].append(['adelanto', 'Q2 quincena', round(-200.00,2)])
 
 
 headers = ['Concepto', 'Descripción', 'Monto']

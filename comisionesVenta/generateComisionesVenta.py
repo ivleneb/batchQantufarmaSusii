@@ -7,7 +7,8 @@ from lib.ReportDownloader import *
 
 categoriesEnabled={'QANTUFARMA.RUTH (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                    'QANTUFARMA.JENNY (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
-                   'QANTUFARMA.MIRIAM (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS']
+                   'QANTUFARMA.MIRIAM (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
+                   'QANTUFARMA.ROSANGELA2 (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS']
                    }
 prodDBDict = {}
 
@@ -115,7 +116,7 @@ def summaryCommission(ProductsDataFile, salesDataFile, PackDataFile):
                         continue
                     nbrSales=sale[name]
                     # Exclude NaN values
-                    if nbrSales == nbrSales:
+                    if nbrSales == nbrSales and prod.getCommission()>0:
                         print("adding "+str(nbrSales*prod.getCommission())+" to "+name)
                         seller.addCommission(prod, nbrSales)
     
@@ -164,7 +165,7 @@ file1 = rd.execute()
 
 repHeaders = ["CÓDIGO", "NOMBRE", "DISABLE (PRODUCTO - EXTRA)",
               "QANTUFARMA.JENNY (USUARIO)", "QANTUFARMA.RUTH (USUARIO)",
-              "QANTUFARMA.MIRIAM (USUARIO)", "CANTIDAD TOTAL"]
+              "QANTUFARMA.MIRIAM (USUARIO)", "QANTUFARMA.ROSANGELA2 (USUARIO)", "CANTIDAD TOTAL"]
 rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
                       repHeaders, beginDt, endDt)
 file2 = rd.execute()

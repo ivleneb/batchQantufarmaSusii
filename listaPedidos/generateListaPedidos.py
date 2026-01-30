@@ -14,7 +14,7 @@ with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
     business_ = data["businessId"]
 
 # pedir stock para NBR_DAYS dias
-NBR_DAYS=30
+NBR_DAYS=40
 stock_0 = False
 
 prodDict = {}

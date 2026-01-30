@@ -32,6 +32,27 @@ class HourStat:
         else:
             return 0.0
 
+class DiaStat:
+    def __init__(self, dia):
+        self.dia = dia
+        self.amt = 0.0
+        self.tick = 0
+        
+    def addSale(self, amt):
+        self.amt += amt
+        self.tick += 1
+        
+    def getAmt(self):
+        return self.amt
+    
+    def getTickets(self):
+        return self.tick
+    
+    def getAmtPerTicket(self):
+        if self.tick != 0:
+            return self.amt/self.tick
+        else:
+            return 0.0
 
 class SellerStat:
     def __init__(self, seller):
@@ -49,16 +70,28 @@ def getHora(date):
     hh = ls[1][0:2]
     return hh
 
+def getDia(date):
+    ls = date.split()
+    fecha_str = ls[0]
+    fecha = datetime.strptime(fecha_str, "%d/%m/%Y")
+    numero_dia = fecha.weekday()
+    # Convertir a texto
+    dias_semana = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+    nombre_dia = dias_semana[numero_dia]
+    return nombre_dia
+
 def summaryStats(salesDataFile, days):
     # dataframe Products
     sales_df = pandas.read_excel(salesDataFile, skiprows=8)
 
     dictSeller = {}
     dictHour = {f"{i:02d}": HourStat(f"{i:02d}") for i in range(7, 23)}
+    dictDia = {}
     
     # For each pack
     for index, row in sales_df.iterrows():
         hh = getHora(row['FECHA'])
+        dia = getDia(row['FECHA'])
         seller = row['VENDEDOR']
         amt = row['IMPORTE TOTAL DEL COMPROBANTE']
         
@@ -69,7 +102,11 @@ def summaryStats(salesDataFile, days):
         if not hh in dictHour:
             dictHour[hh]=HourStat(hh)
         dictHour[hh].addSale(amt)
-
+        
+        if not dia in dictDia:
+            dictDia[dia]=DiaStat(dia)
+        dictDia[dia].addSale(amt) 
+            
     print("Summary")
     
     # 
@@ -94,14 +131,27 @@ def summaryStats(salesDataFile, days):
         data2.append([hour, amt, ticks, amtPerTick, amt/days, ticks/days, amtPerTick/days])
         print("Hora:"+hour+" Monto:"+str(hourData.getAmt())+" Tickets:"+str(hourData.getTickets()))
     
-    cols = ['HORA', 'MONTO', 'TICKETS', 'PROMEDIO', 'MONTOXDIA', 'TICKETXDIA', 'PROMEDIOXDIA']
+    cols = ['HORA', 'MONTO TOT', 'TICKETS TOT', 'MONTOxTICK', 'MONTOXDIA', 'TICKETXDIA', 'PROMEDIOXDIA']
     out_df = pandas.DataFrame(data2, columns = cols)
-
+    
+    print("DIAS")
+    data3 = []
+    for dia, diaData in dictDia.items():
+        amt = diaData.getAmt()
+        ticks = diaData.getTickets()
+        amtPerTick = diaData.getAmtPerTicket()
+        data3.append([dia, amt, ticks, amtPerTick, amt/days, ticks/days, amtPerTick/days])
+        print("Dia:"+dia+" Monto:"+str(diaData.getAmt())+" Tickets:"+str(diaData.getTickets()))
+    
+    cols = ['DIA', 'MONTO TOT', 'TICKETS TOT', 'MONTOxTICK', 'MONTOXDIA', 'TICKETXDIA', 'PROMEDIOXDIA']
+    dia_df = pandas.DataFrame(data3, columns = cols)
+    
     now = datetime.now().strftime("%Y%m%d")
     excel_name = str(business_)+'_StatVentasPorHora_'+now+'.xlsx'
 
     with pandas.ExcelWriter(excel_name) as excel_writer:
         out_df.to_excel(excel_writer, sheet_name='General', index=False)
+        dia_df.to_excel(excel_writer, sheet_name='Dias', index=False)
         for seller in data1:
             seller_df = pandas.DataFrame(data1[seller], columns = cols)
             seller_df.to_excel(excel_writer, sheet_name=seller, index=False)
