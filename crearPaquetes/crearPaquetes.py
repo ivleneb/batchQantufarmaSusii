@@ -1,16 +1,17 @@
 import sys
 sys.path.append(r'../')
 #from lib.libclass import *
-from lib.libclass import QantuProduct
-from lib.libclass import QantuPackage
-from lib.libclass import QantuMedicine
-from lib.libclass import QantuGalenico
-from lib.libclass import QantuDevice
-from lib.libclass import QantuGeneral
+from lib.QantuProduct import QantuProduct
+from lib.QantuPackage import QantuPackage
+from lib.QantuMedicine import QantuMedicine
+from lib.QantuGalenico import QantuGalenico
+from lib.QantuDevice import QantuDevice
+from lib.QantuGeneral import QantuGeneral
 from lib.PriceManager import PriceManager
-from lib.ReportDownloader import *
+from lib.ReportDownloader import ReportDownloader
 import pandas
 from datetime import datetime
+import json
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:

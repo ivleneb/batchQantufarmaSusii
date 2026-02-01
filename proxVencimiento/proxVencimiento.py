@@ -1,17 +1,20 @@
-import sys, os
+import sys
 sys.path.append(r'../')
-from lib.libclass import *
-from lib.ReportDownloader import *
+from lib.QantuMedicine import QantuMedicine
+from lib.QantuGalenico import QantuGalenico
+from lib.QantuDevice import QantuDevice
+from lib.QantuGeneral import QantuGeneral
+#from lib.QantuPackage import QantuPackage
+#from lib.QantuProduct import QantuProduct
+from lib.ReportDownloader import ReportDownloader
 import pandas
 from datetime import datetime
+import json
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    business_ = data["businessId"]
-
-    
-prodDict = {}
+    dataCfg = json.load(file)
+    business_ = dataCfg["businessId"]
 
 def getProduct(prod_df, code):
     sub_df = prod_df.loc[prod_df['CÓDIGO'] == code]
@@ -67,56 +70,60 @@ def createDataList(prodDict):
     return data
 
 
-today = datetime.now().strftime("%Y-%m-%d")
+def run():
+    prodDict = {}
+    today = datetime.now().strftime("%Y-%m-%d")
 
-# download product data
-repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
-              "creado (EXTRA)", "fecha_vto (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA",
-              "generico (EXTRA)"]
-rd = ReportDownloader("Exportar productos.xlsx", "export_products",
-                      repHeaders, '2024-02-12',
-                      today)
-file_prod = rd.execute()
-if file_prod == "":
-    sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+    # download product data
+    repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
+                  "creado (EXTRA)", "fecha_vto (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA",
+                  "generico (EXTRA)"]
+    rd = ReportDownloader("Exportar productos.xlsx", "export_products",
+                          repHeaders, '2024-02-12',
+                          today)
+    file_prod = rd.execute()
+    if file_prod == "":
+        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
 
-prod_df = pandas.read_excel(file_prod, skiprows=4)
-print("REG SIZE (prod):"+str(len(prod_df)))
+    prod_df = pandas.read_excel(file_prod, skiprows=4)
+    print("REG SIZE (prod):"+str(len(prod_df)))
 
-# Load products
-for index, row in prod_df.iterrows():
-    # only add sales that are products
-    prod = getProduct(prod_df, row['CÓDIGO'])
-    if prod is not None:
-        # add product to data dict
-        if prod.getCode() in prodDict:
-            raise Exception("Key must be unique")
-        prodDict[prod.getCode()]=prod
-        #if prod.getCategory()=='MEDICAMENTOS':
-        #    print(prod.getName())
-        #    print(prod.isGenerico())
+    # Load products
+    for index, row in prod_df.iterrows():
+        # only add sales that are products
+        prod = getProduct(prod_df, row['CÓDIGO'])
+        if prod is not None:
+            # add product to data dict
+            if prod.getCode() in prodDict:
+                raise Exception("Key must be unique")
+            prodDict[prod.getCode()]=prod
+            #if prod.getCategory()=='MEDICAMENTOS':
+            #    print(prod.getName())
+            #    print(prod.isGenerico())
 
 
-medsDict = {}
-otherDict = {}
-for key, prod in prodDict.items():
-    if prod.getCategory()=='MEDICAMENTOS':
-        medsDict[key]=prod
-    else:
-        otherDict[key]=prod
+    medsDict = {}
+    otherDict = {}
+    for key, prod in prodDict.items():
+        if prod.getCategory()=='MEDICAMENTOS':
+            medsDict[key]=prod
+        else:
+            otherDict[key]=prod
 
-dataMeds = createDataList(medsDict)
-dataOther = createDataList(otherDict)
+    dataMeds = createDataList(medsDict)
+    dataOther = createDataList(otherDict)
 
-cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'STOCK', 
-        'CREADO', 'FECHA VTO' ]
+    cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'STOCK', 
+            'CREADO', 'FECHA VTO' ]
 
-outMed_df = pandas.DataFrame(dataMeds, columns = cols)
-outOther_df = pandas.DataFrame(dataOther, columns = cols)
+    outMed_df = pandas.DataFrame(dataMeds, columns = cols)
+    outOther_df = pandas.DataFrame(dataOther, columns = cols)
 
-now = datetime.now().strftime("%Y%m%d")
-excel_name = str(business_)+'_ProxVto_'+now+'.xlsx'
+    now = datetime.now().strftime("%Y%m%d")
+    excel_name = str(business_)+'_ProxVto_'+now+'.xlsx'
 
-with pandas.ExcelWriter(excel_name) as excel_writer:
-    outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
-    outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
+    with pandas.ExcelWriter(excel_name) as excel_writer:
+        outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
+        outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
+
+run()

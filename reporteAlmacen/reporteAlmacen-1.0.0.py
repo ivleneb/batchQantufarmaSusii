@@ -1,8 +1,8 @@
 import sys
 sys.path.append('../')
 from reports.WarehouseMovementReport import WarehouseMovementReport
-from lib.RequestHandler import *
-
+from lib.RequestHandler import RequestHandler
+import json
 
 
 # Read JSON file

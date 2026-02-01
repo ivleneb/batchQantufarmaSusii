@@ -1,9 +1,8 @@
-import sys, os
+import sys
 sys.path.append(r'../')
 import pandas
-from datetime import datetime
-from lib.libclass import *
-from lib.ReportDownloader import *
+from lib.ReportDownloader import ReportDownloader
+import json
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:

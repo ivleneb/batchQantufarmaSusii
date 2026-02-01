@@ -1,12 +1,13 @@
-import sys, os
+import sys
 sys.path.append(r'../')
-from lib.libclass import *
-from lib.ReportDownloader import *
+#from lib.libclass import *
+from lib.ReportDownloader import ReportDownloader
 import pandas
 from datetime import datetime
-from datetime import timedelta
-import re
-import math
+#from datetime import timedelta
+#import re
+#import math
+import json
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
@@ -39,19 +40,19 @@ count = 0
 data = []
 added = []
 for index, row in catQantu_df.iterrows():
-  if row['disable (EXTRA)']==1:
-      continue
-  found = catDiris_df.loc[catDiris_df['Num_RegSan'] == row['num_regsan (EXTRA)']]
-  for i, rec in found.iterrows():
-    count = count + 1
-    unitPrice = row['PRECIO DE VENTA']
-    fracUnitPrice = unitPrice*rec['Fracción']
-    if rec['Cod_Prod'] in added:
-        print("Codigo de producto ya esta en uso")
+    if row['disable (EXTRA)']==1:
         continue
-    #print(rec['Cod_Prod'], ',', rec['Nom_Prod'], ',', rec['Concent'], ',', rec['Fracciones'], ',', unitPrice, unitPrice*rec['Fracciones']);
-    data.append(['0112946', rec['Cod_Prod'], '%.2f' % fracUnitPrice, '%.2f' % unitPrice])
-    added.append(rec['Cod_Prod'])
+    found = catDiris_df.loc[catDiris_df['Num_RegSan'] == row['num_regsan (EXTRA)']]
+    for i, rec in found.iterrows():
+        count = count + 1
+        unitPrice = row['PRECIO DE VENTA']
+        fracUnitPrice = unitPrice*rec['Fracción']
+        if rec['Cod_Prod'] in added:
+            print("Codigo de producto ya esta en uso")
+            continue
+        #print(rec['Cod_Prod'], ',', rec['Nom_Prod'], ',', rec['Concent'], ',', rec['Fracciones'], ',', unitPrice, unitPrice*rec['Fracciones']);
+        data.append(['0112946', rec['Cod_Prod'], '%.2f' % fracUnitPrice, '%.2f' % unitPrice])
+        added.append(rec['Cod_Prod'])
 
 print("COUNT: "+str(count))
 out_df = pandas.DataFrame(data, columns =['CodEstab', 'CodProd', 'Precio 1', 'Precio 2'])

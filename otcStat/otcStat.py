@@ -1,21 +1,22 @@
-import sys, os
+import sys
 sys.path.append(r'../')
-from lib.libclass import *
-from lib.ReportDownloader import *
+from lib.QantuGeneral import QantuGeneral
+from lib.QantuGalenico import QantuGalenico
+from lib.QantuMedicine import QantuMedicine
+from lib.QantuDevice import QantuDevice
+from lib.QantuPackage import QantuPackage
+from lib.ReportDownloader import ReportDownloader
 import pandas
 from datetime import datetime
 from datetime import timedelta
 import re
-import math
+#import math
 
 # pedir stock para NBR_DAYS dias
 NBR_DAYS=30
 
-prodDict = {}
-packDict = {}
 providers = ['DROGE', 'V&G', 'DPERU', 'EURO', 'INKAF',  'LIMAC',
         'CBC', 'VEGA', 'AGREEN']
-
 colProvI = 'L'
 colProvF = chr(ord(colProvI)+len(providers)-1)
 rowProv=1
@@ -105,7 +106,7 @@ def combineGalenicos(prodDict):
         if not code in prodDict:
             continue
         prod = prodDict[code]
-        if prod.getCategory() is not 'GALENICOS':
+        if prod.getCategory() != 'GALENICOS':
             continue
         #print("Get formula")
         formu = prod.getFormula()
@@ -127,7 +128,7 @@ def combineGalenicos(prodDict):
             if not code in prodDict:
                 continue
             prod2 = prodDict[code2]
-            if prod2.getCategory() is not 'GALENICOS':
+            if prod2.getCategory() != 'GALENICOS':
                 continue
             
             if formu == prod2.getFormula():
@@ -288,138 +289,143 @@ def createDataList(prodDict):
         
     return data
 
+def run():
+    prodDict = {}
+    packDict = {}
+    
+    now = (datetime.now()+ timedelta(days=1)).strftime("%Y-%m-%d")
 
-now = (datetime.now()+ timedelta(days=1)).strftime("%Y-%m-%d")
+    # download sales per product
+    repHeaders = ["CÓDIGO", "NOMBRE", "STOCK ACTUAL",
+                  "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
+    rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
+                          repHeaders, '2023-05-27',
+                          now)
+    file_sales = rd.execute()
+    if file_sales == "":
+        sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
 
-# download sales per product
-repHeaders = ["CÓDIGO", "NOMBRE", "STOCK ACTUAL",
-              "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
-rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
-                      repHeaders, '2023-05-27',
-                      now)
-file_sales = rd.execute()
-if file_sales == "":
-    sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
+    # download product data
+    repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
+                  "creado (EXTRA)", "Lab (EXTRA)", "otc (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
+    rd = ReportDownloader("Exportar productos.xlsx", "export_products",
+                          repHeaders, '2024-02-12',
+                          now)
+    file_prod = rd.execute()
+    if file_prod == "":
+        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
 
-# download product data
-repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
-              "creado (EXTRA)", "Lab (EXTRA)", "otc (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
-rd = ReportDownloader("Exportar productos.xlsx", "export_products",
-                      repHeaders, '2024-02-12',
-                      now)
-file_prod = rd.execute()
-if file_prod == "":
-    sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+    #download package data
+    repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
+                  "CANTIDAD (ITEM)"]
+    rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
+                          repHeaders, '2024-02-12',
+                          now)
+    file_pack = rd.execute()
+    if file_pack == "":
+        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
 
-#download package data
-repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
-              "CANTIDAD (ITEM)"]
-rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
-                      repHeaders, '2024-02-12',
-                      now)
-file_pack = rd.execute()
-if file_pack == "":
-    sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+    prodSale_df = pandas.read_excel(file_sales, skiprows=5)
+    print("REG SIZE (prod sales):"+str(len(prodSale_df)))
 
-prodSale_df = pandas.read_excel(file_sales, skiprows=5)
-print("REG SIZE (prod sales):"+str(len(prodSale_df)))
+    prod_df = pandas.read_excel(file_prod, skiprows=4)
+    print("REG SIZE (prod):"+str(len(prod_df)))
 
-prod_df = pandas.read_excel(file_prod, skiprows=4)
-print("REG SIZE (prod):"+str(len(prod_df)))
+    pack_df = pandas.read_excel(file_pack, skiprows=4)
+    print("REG SIZE (prod):"+str(len(prod_df)))
 
-pack_df = pandas.read_excel(file_pack, skiprows=4)
-print("REG SIZE (prod):"+str(len(prod_df)))
+    # Load products
+    for index, row in prod_df.iterrows():
+        prod = getProduct(row)
+        if prod != None and not prod.isDisable() and not prod.isNoUsar():
+            addSaleData(prod, prodSale_df)
+            if prod.getCode() in prodDict:
+                raise Exception("Key must be unique")
+            prodDict[prod.getCode()]=prod
 
-# Load products
-for index, row in prod_df.iterrows():
-    prod = getProduct(row)
-    if prod != None and not prod.isDisable() and not prod.isNoUsar():
-        addSaleData(prod, prodSale_df)
-        if prod.getCode() in prodDict:
-            raise Exception("Key must be unique")
-        prodDict[prod.getCode()]=prod
+    # Load packages
+    for key, row in prodSale_df.iterrows():
+        # only add sales that are products
+        pack = getPackage(pack_df, row['CÓDIGO'])
+        if pack is not None:
+            pack.setSoldUnits(row['CANTIDAD TOTAL'])
+            packDict[pack.getCode()]=pack
+            
+    # Incresase sold unit according to package
+    print("First product filter")
+    for pack in packDict.values():
+        for packprodCode, qty in pack.getItems().items():
+            if packprodCode in prodDict.keys():
+                prodDict[packprodCode].addSoldUnits(qty*pack.getSoldUnits())
 
-# Load packages
-for key, row in prodSale_df.iterrows():
-    # only add sales that are products
-    pack = getPackage(pack_df, row['CÓDIGO'])
-    if pack is not None:
-        pack.setSoldUnits(row['CANTIDAD TOTAL'])
-        packDict[pack.getCode()]=pack
-        
-# Incresase sold unit according to package
-print("First product filter")
-for pack in packDict.values():
-    for packprodCode, qty in pack.getItems().items():
-        if packprodCode in prodDict.keys():
-            prodDict[packprodCode].addSoldUnits(qty*pack.getSoldUnits())
-
-# Combine medicine items with same form and concentration
-print("Second product filter")
-for code in list(prodDict):
-    if not code in prodDict:
-        continue
-    prod = prodDict[code]
-    if prod.getCategory() is not 'MEDICAMENTOS':
-        continue
-    formu = prod.getFormula()
-    if formu == "":
-        print("WARNING: Invalid formula for MED "+prod.getName())
-        continue
-    cc = prod.getConcentration()
-    if cc == "":
-        print("WARNING: Invalid CC for MED ")
-        continue
-    ff  = prod.getFF()
-    if ff == "":
-        print("WARNING: Invalid FF for MED ")
-        continue
-
-    for code2 in list(prodDict):
-        if code == code2:
-            continue
+    # Combine medicine items with same form and concentration
+    print("Second product filter")
+    for code in list(prodDict):
         if not code in prodDict:
             continue
-        prod2 = prodDict[code2]
-        if prod2.getCategory() is not 'MEDICAMENTOS':
+        prod = prodDict[code]
+        if prod.getCategory() != 'MEDICAMENTOS':
             continue
+        formu = prod.getFormula()
+        if formu == "":
+            print("WARNING: Invalid formula for MED "+prod.getName())
+            continue
+        cc = prod.getConcentration()
+        if cc == "":
+            print("WARNING: Invalid CC for MED ")
+            continue
+        ff  = prod.getFF()
+        if ff == "":
+            print("WARNING: Invalid FF for MED ")
+            continue
+
+        for code2 in list(prodDict):
+            if code == code2:
+                continue
+            if not code in prodDict:
+                continue
+            prod2 = prodDict[code2]
+            if prod2.getCategory() != 'MEDICAMENTOS':
+                continue
+            
+            if formu == prod2.getFormula():
+                if cc == prod2.getConcentration():
+                    if ff == prod2.getFF():
+                        prod.merge(prod2)
+                        del prodDict[code2]
+
+    prodDict=combineGalenicos(prodDict)
+    prodDict=combineMedDevices(prodDict)
+    #prodDict=combineAseo(prodDict)
+
+    medsDict = {}
+    otherDict = {}
+    for key, prod in prodDict.items():
+        if prod.getCategory()=='MEDICAMENTOS':
+            medsDict[key]=prod
+        else:
+            otherDict[key]=prod
+
+    dataMeds = createDataList(medsDict)
+    dataOther = createDataList(otherDict)
+    countMeds = len(dataMeds)
+    countOther =len(dataOther)
+
+    cols = ['COD', 'NOMBRE', 'STOCK', 'BRAND', 'PRVDOR', 'COSTO',
+            'PRECIO', 'VENTAS', 'PER', 'PEDIR', 'FINAL']
+    cols = cols + providers + ['ELEGIDO', 'MONTO', 'OTC']
+    outMed_df = pandas.DataFrame(dataMeds, columns = cols)
+    outOther_df = pandas.DataFrame(dataOther, columns = cols)
+
+    now = datetime.now().strftime("%Y%m%d")
+    excel_name = 'ListaPedidos_'+now+'.xlsx'
+
+    with pandas.ExcelWriter(excel_name) as excel_writer:
+        outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
+        outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
+        #for prov in providers:
+            #dataProvList = createDataProvList(prov, countMeds)
+            #prov_df = pandas.DataFrame(dataProvList, columns = cols)
+            #prov_df.to_excel(excel_writer, sheet_name='Lista_'+prov, index=False)
         
-        if formu == prod2.getFormula():
-            if cc == prod2.getConcentration():
-                if ff == prod2.getFF():
-                    prod.merge(prod2)
-                    del prodDict[code2]
-
-prodDict=combineGalenicos(prodDict)
-prodDict=combineMedDevices(prodDict)
-#prodDict=combineAseo(prodDict)
-
-medsDict = {}
-otherDict = {}
-for key, prod in prodDict.items():
-    if prod.getCategory()=='MEDICAMENTOS':
-        medsDict[key]=prod
-    else:
-        otherDict[key]=prod
-
-dataMeds = createDataList(medsDict)
-dataOther = createDataList(otherDict)
-countMeds = len(dataMeds)
-countOther =len(dataOther)
-
-cols = ['COD', 'NOMBRE', 'STOCK', 'BRAND', 'PRVDOR', 'COSTO',
-        'PRECIO', 'VENTAS', 'PER', 'PEDIR', 'FINAL']
-cols = cols + providers + ['ELEGIDO', 'MONTO', 'OTC']
-outMed_df = pandas.DataFrame(dataMeds, columns = cols)
-outOther_df = pandas.DataFrame(dataOther, columns = cols)
-
-now = datetime.now().strftime("%Y%m%d")
-excel_name = 'ListaPedidos_'+now+'.xlsx'
-
-with pandas.ExcelWriter(excel_name) as excel_writer:
-    outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
-    outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
-    #for prov in providers:
-        #dataProvList = createDataProvList(prov, countMeds)
-        #prov_df = pandas.DataFrame(dataProvList, columns = cols)
-        #prov_df.to_excel(excel_writer, sheet_name='Lista_'+prov, index=False)
+run()

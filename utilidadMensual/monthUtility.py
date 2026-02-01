@@ -1,15 +1,11 @@
-import sys, os
+import sys
 sys.path.append('../')
-from lib.libclass import *
-from lib.ReportDownloader import *
+from lib.QantuProduct import QantuProduct
+from lib.QantuPackage import QantuPackage
+from lib.ReportDownloader import ReportDownloader
 import pandas
 from datetime import datetime
-import re
-import calendar
-
-prodDBDict = {}
-prodDict = {}
-packDict = {}
+import json
 
 colCosto = 'D'
 colPrecio = 'E'
@@ -20,8 +16,8 @@ IGV=0.18
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    business_ = data["businessId"]
+    dataCfg = json.load(file)
+    business_ = dataCfg["businessId"]
 
 
 def addSaleData(prod, sale_df):
@@ -52,7 +48,7 @@ def getProduct(prod_df, code):
     else:
         return None
 
-def getPackage(pack_df, code):
+def getPackage(pack_df, code, prodDBDict):
     sub_df = pack_df.loc[pack_df['CÓDIGO'] == code]
     if len(sub_df)>0:
         row = sub_df.iloc[0]
@@ -133,122 +129,129 @@ def createDataList(packDict, prodDict):
     
     return data, summaryData
 
-# Enter period
-year = input("Enter year YYYY: ")
-month = input("Enter month mm: ")
-beginDt = year+"-"+month+"-01"
-#lastDay = calendar.monthrange(int(year), int(month))[1]
-monthNum=int(month)
-endMonthNum = monthNum+1
-if endMonthNum == 13:
-    endMonthNum=1
-    yearNum = int(year)+1
-    year = str(yearNum)
-endMonth = "{:02d}".format(endMonthNum)
-endDt = year+"-"+endMonth+"-01"
+def run():
+    prodDBDict = {}
+    prodDict = {}
+    packDict = {}
+    # Enter period
+    year = input("Enter year YYYY: ")
+    month = input("Enter month mm: ")
+    beginDt = year+"-"+month+"-01"
+    #lastDay = calendar.monthrange(int(year), int(month))[1]
+    monthNum=int(month)
+    endMonthNum = monthNum+1
+    if endMonthNum == 13:
+        endMonthNum=1
+        yearNum = int(year)+1
+        year = str(yearNum)
+    endMonth = "{:02d}".format(endMonthNum)
+    endDt = year+"-"+endMonth+"-01"
 
-now = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now().strftime("%Y-%m-%d")
 
-# download sales per product
-repHeaders = ["CÓDIGO", "NOMBRE", "CANTIDAD TOTAL"]
-rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
-                      repHeaders, beginDt,
-                      endDt)
-file_sales = rd.execute()
-if file_sales == "":
-    sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
+    # download sales per product
+    repHeaders = ["CÓDIGO", "NOMBRE", "CANTIDAD TOTAL"]
+    rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
+                          repHeaders, beginDt,
+                          endDt)
+    file_sales = rd.execute()
+    if file_sales == "":
+        sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
 
-# download product data
-repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
-              "creado (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
-rd = ReportDownloader("Exportar productos.xlsx", "export_products",
-                      repHeaders, '2024-02-12',
-                      now)
-file_prod = rd.execute()
-if file_prod == "":
-    sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+    # download product data
+    repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
+                  "creado (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
+    rd = ReportDownloader("Exportar productos.xlsx", "export_products",
+                          repHeaders, '2024-02-12',
+                          now)
+    file_prod = rd.execute()
+    if file_prod == "":
+        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
 
-#download package data
-repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
-              "CANTIDAD (ITEM)", "CATEGORÍA", "PRECIO DE VENTA"]
-rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
-                      repHeaders, '2024-02-12',
-                      now)
-file_pack = rd.execute()
-if file_pack == "":
-    sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+    #download package data
+    repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
+                  "CANTIDAD (ITEM)", "CATEGORÍA", "PRECIO DE VENTA"]
+    rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
+                          repHeaders, '2024-02-12',
+                          now)
+    file_pack = rd.execute()
+    if file_pack == "":
+        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
 
-#download expenses
-repHeaders = ["DESCRIPCIÓN", "CATEGORÍA", "MONTO"]
-rd = ReportDownloader("Exportar gastos.xlsx", "export_payments_expenses",
-                      repHeaders, beginDt, endDt)
-file_expenses = rd.execute()
-if file_expenses == '':
-    sys.exit("Can't dowloand file[Exportar gastos.xlsx]")
-    
-
-prodSale_df = pandas.read_excel(file_sales, skiprows=5)
-print("REG SIZE (prod sales):"+str(len(prodSale_df)))
-
-prod_df = pandas.read_excel(file_prod, skiprows=4)
-print("REG SIZE (prod):"+str(len(prod_df)))
-
-pack_df = pandas.read_excel(file_pack, skiprows=4)
-print("REG SIZE (pack):"+str(len(pack_df)))
-
-exp_df = pandas.read_excel(file_expenses, skiprows=4)
-print("REG SIZE (expenses):"+str(len(exp_df)))
-
-sum_row = exp_df[['MONTO']].sum()
-sum_row['DESCRIPCIÓN'] = 'Total'
-sum_row['CATEGORÍA'] = 'Todas'
-sum_df = pandas.DataFrame([sum_row], columns=exp_df.columns)
-exp_df = pandas.concat([exp_df, sum_df], ignore_index=True)
-
-# Load products DB
-for index, row in prod_df.iterrows():
-    prod = getProductDB(row)
-    if prod != None and (not prod.isDisable()) and not prod.isNoUsar():
-        addSaleData(prod, prodSale_df)
-        if prod.getCode() in prodDBDict:
-            raise Exception("Key must be unique")
-        prodDBDict[prod.getCode()]=prod
-
-# Load products
-for index, row in prodSale_df.iterrows():
-    prod = getProduct(prod_df, row['CÓDIGO'])
-    if prod != None and (not prod.isDisable()) and not prod.isNoUsar():
-        addSaleData(prod, prodSale_df)
-        if prod.getCode() in prodDict:
-            raise Exception("Key must be unique")
-        prodDict[prod.getCode()]=prod
+    #download expenses
+    repHeaders = ["DESCRIPCIÓN", "CATEGORÍA", "MONTO"]
+    rd = ReportDownloader("Exportar gastos.xlsx", "export_payments_expenses",
+                          repHeaders, beginDt, endDt)
+    file_expenses = rd.execute()
+    if file_expenses == '':
+        sys.exit("Can't dowloand file[Exportar gastos.xlsx]")
         
-# Load packages
-for key, row in prodSale_df.iterrows():
-    # only add sales that are products
-    pack = getPackage(pack_df, row['CÓDIGO'])
-    if pack is not None:
-        pack.setSoldUnits(row['CANTIDAD TOTAL'])
-        packDict[pack.getCode()]=pack
 
-data, summaryData = createDataList(packDict, prodDict)
-count = len(data)
+    prodSale_df = pandas.read_excel(file_sales, skiprows=5)
+    print("REG SIZE (prod sales):"+str(len(prodSale_df)))
 
-cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'VENTAS',
-        'TOTAL', 'Mcu', 'Mcu%', 'Mc']
-out_df = pandas.DataFrame(data, columns = cols)
+    prod_df = pandas.read_excel(file_prod, skiprows=4)
+    print("REG SIZE (prod):"+str(len(prod_df)))
 
-colsSummary = ['CAT', 'VOL VENTAS', 'MC', 'MCR']
-out2_df = pandas.DataFrame(summaryData, columns = colsSummary)
-sum_row = out2_df[['VOL VENTAS', 'MC', 'MCR']].sum()
-sum_row['CAT'] = 'Total'
-sum_df = pandas.DataFrame([sum_row], columns=out2_df.columns)
-out2_df = pandas.concat([out2_df, sum_df], ignore_index=True)
+    pack_df = pandas.read_excel(file_pack, skiprows=4)
+    print("REG SIZE (pack):"+str(len(pack_df)))
 
-now = datetime.now().strftime("%Y%m%d")
-excel_name = str(business_)+'_Utilidad_'+year+month+'_'+now+'.xlsx'
+    exp_df = pandas.read_excel(file_expenses, skiprows=4)
+    print("REG SIZE (expenses):"+str(len(exp_df)))
 
-with pandas.ExcelWriter(excel_name) as excel_writer:
-    out_df.to_excel(excel_writer, sheet_name='Utilidad', index=False)
-    out2_df.to_excel(excel_writer, sheet_name='Summary', index=False)
-    exp_df.to_excel(excel_writer, sheet_name='Expenses', index=False)
+    sum_row = exp_df[['MONTO']].sum()
+    sum_row['DESCRIPCIÓN'] = 'Total'
+    sum_row['CATEGORÍA'] = 'Todas'
+    sum_df = pandas.DataFrame([sum_row], columns=exp_df.columns)
+    exp_df = pandas.concat([exp_df, sum_df], ignore_index=True)
+
+    # Load products DB
+    for index, row in prod_df.iterrows():
+        prod = getProductDB(row)
+        if prod != None and (not prod.isDisable()) and not prod.isNoUsar():
+            addSaleData(prod, prodSale_df)
+            if prod.getCode() in prodDBDict:
+                raise Exception("Key must be unique")
+            prodDBDict[prod.getCode()]=prod
+
+    # Load products
+    for index, row in prodSale_df.iterrows():
+        prod = getProduct(prod_df, row['CÓDIGO'])
+        if prod != None and (not prod.isDisable()) and not prod.isNoUsar():
+            addSaleData(prod, prodSale_df)
+            if prod.getCode() in prodDict:
+                raise Exception("Key must be unique")
+            prodDict[prod.getCode()]=prod
+            
+    # Load packages
+    for key, row in prodSale_df.iterrows():
+        # only add sales that are products
+        pack = getPackage(pack_df, row['CÓDIGO'], prodDBDict)
+        if pack is not None:
+            pack.setSoldUnits(row['CANTIDAD TOTAL'])
+            packDict[pack.getCode()]=pack
+
+    data, summaryData = createDataList(packDict, prodDict)
+    count = len(data)
+
+    cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'VENTAS',
+            'TOTAL', 'Mcu', 'Mcu%', 'Mc']
+    out_df = pandas.DataFrame(data, columns = cols)
+
+    colsSummary = ['CAT', 'VOL VENTAS', 'MC', 'MCR']
+    out2_df = pandas.DataFrame(summaryData, columns = colsSummary)
+    sum_row = out2_df[['VOL VENTAS', 'MC', 'MCR']].sum()
+    sum_row['CAT'] = 'Total'
+    sum_df = pandas.DataFrame([sum_row], columns=out2_df.columns)
+    out2_df = pandas.concat([out2_df, sum_df], ignore_index=True)
+
+    now = datetime.now().strftime("%Y%m%d")
+    excel_name = str(business_)+'_Utilidad_'+year+month+'_'+now+'.xlsx'
+
+    with pandas.ExcelWriter(excel_name) as excel_writer:
+        out_df.to_excel(excel_writer, sheet_name='Utilidad', index=False)
+        out2_df.to_excel(excel_writer, sheet_name='Summary', index=False)
+        exp_df.to_excel(excel_writer, sheet_name='Expenses', index=False)
+
+
+run()

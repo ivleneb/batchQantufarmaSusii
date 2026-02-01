@@ -2,11 +2,11 @@ import sys #, os
 sys.path.append('../')
 import pandas
 #from datetime import datetime
-from lib.libclass import QantuProduct
-from lib.libclass import QantuSeller
-from lib.libclass import QantuSuplement
-from lib.libclass import QantuGeneral
-from lib.libclass import QantuPackage
+from lib.QantuProduct import QantuProduct
+from lib.QantuSeller import QantuSeller
+from lib.QantuSuplement import QantuSuplement
+from lib.QantuGeneral import QantuGeneral
+from lib.QantuPackage import QantuPackage
 
 from lib.ReportDownloader import ReportDownloader
 

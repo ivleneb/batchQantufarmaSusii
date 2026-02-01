@@ -2,8 +2,8 @@ import sys
 sys.path.append('../')
 import pandas
 from datetime import datetime
-from lib.libclass import *
-from lib.RequestHandler import *
+#from lib.QantuSeller import QantuSeller
+#from lib.RequestHandler import RequestHandler
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet

@@ -1,14 +1,15 @@
-import sys, os
+import sys
 sys.path.append(r'../')
 import pandas
 from datetime import datetime
-from lib.libclass import *
-from lib.ReportDownloader import *
+#from lib.libclass import *
+from lib.ReportDownloader import ReportDownloader
+import json
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    business_ = data["businessId"]
+    dataCfg = json.load(file)
+    business_ = dataCfg["businessId"]
 
 class HourStat:
     def __init__(self, hour):
@@ -166,24 +167,27 @@ def diferencia_dias(fecha1, fecha2):
         print(f"Error en formato de fecha: {e}")
         return None
 
-# Enter period
-beginDt = input("Enter start date YYYY-MM-DD: ")
-endDt = input("Enter end date YYYY-MM-DD: ")
+def run():
+    # Enter period
+    beginDt = input("Enter start date YYYY-MM-DD: ")
+    endDt = input("Enter end date YYYY-MM-DD: ")
 
-days = diferencia_dias(endDt, beginDt)
-if days==None:
-    exit(1)
-print("Days: "+str(days))
+    days = diferencia_dias(endDt, beginDt)
+    if days==None:
+        exit(1)
+    print("Days: "+str(days))
 
-repHeaders = ["FECHA", "IMPORTE TOTAL DEL COMPROBANTE", "VENDEDOR"]
+    repHeaders = ["FECHA", "IMPORTE TOTAL DEL COMPROBANTE", "VENDEDOR"]
 
-rd = ReportDownloader("Exportar ventas.xlsx", "export_sales",
-                      repHeaders, beginDt, endDt)
-file1 = rd.execute()
+    rd = ReportDownloader("Exportar ventas.xlsx", "export_sales",
+                          repHeaders, beginDt, endDt)
+    file1 = rd.execute()
 
 
-if file1=='':
-    print("Faltan archivos")
-else:
-    print("Download ok")
-    summaryStats(file1, days)
+    if file1=='':
+        print("Faltan archivos")
+    else:
+        print("Download ok")
+        summaryStats(file1, days)
+
+run()
