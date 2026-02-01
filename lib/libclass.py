@@ -352,6 +352,36 @@ class QantuProduct:
     def setMergedLastProvider(self, mergedLastProvider):
         self.mergedLastProvider = mergedLastProvider
         
+    def getTipoTratamiento(self):
+        return self.tipoTratamiento
+    
+    def setTipoTratamiento(self, tipoTratamiento):
+        self.tipoTratamiento = tipoTratamiento
+        
+    def getPriceLogic(self):
+        return self.priceLogic
+    
+    def setPriceLogic(self, priceLogic):
+        self.priceLogic = priceLogic
+        
+    def getSeg1(self):
+        return self.seg1
+    
+    def setSeg1(self, seg1):
+        self.seg1 = seg1
+    
+    def getSeg2(self):
+        return self.seg2
+    
+    def setSeg2(self, seg2):
+        self.seg2 = seg2
+    
+    def getSeg3(self):
+        return self.seg3
+    
+    def setSeg3(self, seg3):
+        self.seg3 = seg3
+        
 class QantuSuplement(QantuProduct):
     def __init__(self, code, name, price, cost):
         super().__init__(code=code, name=name, category='SUPLEMENTOS',
@@ -656,8 +686,11 @@ class QantuSeller():
         self.data['cantidad'].append(cant)
         self.data['sub-total'].append(comm)
         
-    def getCommission(self):
-        return self.commission
+    def getCommission(self, r2:int=2):
+        if r2!=0:
+            return round(self.commission, r2)
+        else:
+            return self.commission
     
     def printSummary(self):
         self.data['producto'].append("TOTAL")
