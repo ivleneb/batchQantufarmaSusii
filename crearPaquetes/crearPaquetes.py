@@ -173,7 +173,7 @@ def createDataListToImportPack(prodDict, packDict):
 
         #if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
         if prod.getCategory()=='MEDICAMENTOS':
-            if prod.getFF() in ['TAB', 'TAB_REC']:
+            if prod.getFF() in ['TAB', 'TAB_REC', 'SOB_2_TAB_REC', 'CJA_1_TAB_REC']:
                 hasPack=False
                 hasCja = False
                 hasBlister = False
@@ -194,14 +194,17 @@ def createDataListToImportPack(prodDict, packDict):
                 cantidadItemBlis = int(prod.getUnitsBlister())
                 cantidadItemCja = int(prod.getUnitsCaja())
                 if not hasPack:
-                    print("NO_PACK PROD["+prod.getName()+"] hasn't pack. Create!")
-                    # crear blister
-                    if cantidadItemBlis == 1:
-                        print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItemBlis)+"]")
+                    if 'SOB' in prod.getFF().upper():
+                        print("WARNING prod["+prod.getName()+"] FF is SOB.")
                     else:
-                        ls = createPackageBlister(prod)
-                        if len(ls)!=0:
-                            data.append(ls)
+                        print("NO_PACK PROD["+prod.getName()+"] hasn't pack. Create!")
+                        # crear blister  
+                        if cantidadItemBlis == 1:
+                            print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItemBlis)+"]")
+                        else:
+                            ls = createPackageBlister(prod)
+                            if len(ls)!=0:
+                                data.append(ls)
                     
                     # crear cja
                     if cantidadItemCja == 1:
@@ -225,7 +228,7 @@ def createDataListToImportPack(prodDict, packDict):
                             if len(ls)!=0:
                                 data.append(ls)
                     
-                    if not hasBlister:
+                    if not hasBlister and not ('SOB' in prod.getFF().upper()):
                         print("NO_PACK_BLISTER PROD["+prod.getName()+"] hasn't pack BLISTER. Create!")
                         # crear blister
                         if cantidadItemBlis == 1:
