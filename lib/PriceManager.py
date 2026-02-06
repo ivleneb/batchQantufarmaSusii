@@ -57,7 +57,7 @@ class PriceManager:
         dsct = 0.0
         if mcups>0.7:
             dsct = 0.5
-        if mcups>0.5:
+        elif mcups>0.5:
             dsct = 0.3
         elif mcups>0.3:
             dsct = 0.1
@@ -75,6 +75,10 @@ class PriceManager:
         else:
             mcups = cls.mcupGeneral(product)
             
+        currMcups = product.getLastMcup()
+        if currMcups >= mcups:
+            mcups = currMcups
+                
         return mcups
     
     @staticmethod

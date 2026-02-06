@@ -263,6 +263,11 @@ def createDataListToImportPack(prodDict, packDict):
         #if prod.getCategory()=='MEDICAMENTOS':
             #if prod.getFF() in ['TAB']:
         #hasPack=False
+        
+        if prod.getPriceLogic()<1.0:
+            print("WARN Product price logic off "+prod.getName())
+            continue
+        
         for pack in packDict.values():
             if prod.getCode() in pack.itemsObj :
                 if len(pack.itemsObj)==1:
@@ -290,7 +295,7 @@ def createDataListToImportPack(prodDict, packDict):
                             pack.getPrice(),  pack.getCategory(), prod.getCode(), prod.getName(),
                             prod.getAlias(), prod.getUnidad(), prod.getPrice(), cantidadItem
                         ]  
-                    
+                        
                         data.append(ls)
                     else:
                         print("WARN current price of pack is better "+pack.getName())

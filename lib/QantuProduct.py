@@ -381,3 +381,8 @@ class QantuProduct:
     
     def setSeg3(self, seg3):
         self.seg3 = seg3
+
+    def getLastMcup(self):
+        if self.getPrice()==0:
+            return 0.0
+        return round((self.getPrice()-self.getLastCost())/self.getPrice(), 2)

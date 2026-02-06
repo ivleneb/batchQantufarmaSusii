@@ -158,6 +158,12 @@ def createPackageCja(prod):
     print(ls)
     return ls
 
+def nameHas(prod, text):
+    if text.upper() in prod.upper():
+        return True
+    else:
+        return False
+
 def createDataListToImportPack(prodDict, packDict):
     data = []
     count = 0
@@ -167,22 +173,29 @@ def createDataListToImportPack(prodDict, packDict):
 
         #if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
         if prod.getCategory()=='MEDICAMENTOS':
-            if prod.getFF() in ['TAB']:
+            if prod.getFF() in ['TAB', 'TAB_REC']:
                 hasPack=False
+                hasCja = False
+                hasBlister = False
                 for key, pack in packDict.items():
                     if prod.getCode() in pack.itemsObj :
                         if len(pack.itemsObj)==1:
                             hasPack=True
+                            if nameHas(pack.getName(), 'Cja'):
+                                hasCja = True
+                            if nameHas(pack.getName(), 'Blister'):
+                                hasBlister = True
                             print("PROD["+prod.getName()+"] already has pack["+pack.getName()+"].")
                             # check for type
                             checkPackType(pack, prod)
                         else:
                             print("WARNING PACK["+pack.getName()+"] has more than 1 item.")
                 # No pack found
+                cantidadItemBlis = int(prod.getUnitsBlister())
+                cantidadItemCja = int(prod.getUnitsCaja())
                 if not hasPack:
                     print("NO_PACK PROD["+prod.getName()+"] hasn't pack. Create!")
                     # crear blister
-                    cantidadItemBlis = int(prod.getUnitsBlister())
                     if cantidadItemBlis == 1:
                         print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItemBlis)+"]")
                     else:
@@ -191,16 +204,36 @@ def createDataListToImportPack(prodDict, packDict):
                             data.append(ls)
                     
                     # crear cja
-                    cantidadItemCja = int(prod.getUnitsCaja())
                     if cantidadItemCja == 1:
                         print("WARNING prod["+prod.getName()+"] has unitsCja["+str(cantidadItemCja)+"]")
                     elif cantidadItemCja == cantidadItemBlis:
                         continue
                     else:
-                        ls = createPackageCja(prod)
+                        ls = createPackageCja(prod) 
                         if len(ls)!=0:
                             data.append(ls)
+                else:         
+                    if not hasCja:
+                        print("NO_PACK_CJA PROD["+prod.getName()+"] hasn't pack CJA. Create!")
+                        # crear cja
+                        if cantidadItemCja == 1:
+                            print("WARNING prod["+prod.getName()+"] has unitsCja["+str(cantidadItemCja)+"]")
+                        elif cantidadItemCja == cantidadItemBlis:
+                            continue
+                        else:
+                            ls = createPackageCja(prod)
+                            if len(ls)!=0:
+                                data.append(ls)
                     
+                    if not hasBlister:
+                        print("NO_PACK_BLISTER PROD["+prod.getName()+"] hasn't pack BLISTER. Create!")
+                        # crear blister
+                        if cantidadItemBlis == 1:
+                            print("WARNING prod["+prod.getName()+"] has unitsBlister["+str(cantidadItemBlis)+"]")
+                        else:
+                            ls = createPackageBlister(prod)
+                            if len(ls)!=0:
+                                data.append(ls)
             else:
                 continue
         else:
