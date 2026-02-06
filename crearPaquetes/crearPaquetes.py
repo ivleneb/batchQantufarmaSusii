@@ -170,6 +170,10 @@ def createDataListToImportPack(prodDict, packDict):
 
     for key, prod in prodDict.items():
         count = count + 1
+        
+        if prod.getStock()<0:
+            print("Product["+prod.getName()+"] hasn't stock.")
+            continue
 
         #if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
         if prod.getCategory()=='MEDICAMENTOS':
