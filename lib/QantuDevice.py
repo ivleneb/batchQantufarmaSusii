@@ -33,3 +33,7 @@ class QantuDevice(QantuProduct):
             return False
         
         return True
+
+    def merge(self, prod):
+        super().merge(prod)
+        self.code = self.getType()+self.getCharacteristic()+self.getQtty()

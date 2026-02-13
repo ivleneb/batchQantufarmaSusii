@@ -12,29 +12,33 @@ with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
     business_ = data["businessId"]
 
 class ReportDownloader:
-    def __init__(self, reportName, reportCode, headers, init, end, category=None):
+    def __init__(self, reportName, reportCode, headers, init, end, category=None, businessId=None):
         self.rname = reportName
         self.code = reportCode
         self.repHeaders = headers
         self.initDate = init
         self.endDate = end
+        self.businessId = business_
+        if businessId != None:
+            self.businessId = businessId
+            
         if self.code == 'export_products':
             if category == None:
                 self.queryParams =  {"package__isnull":'true',
                                  "ordering":"-pk",
                                  "page":1,
-                                 "business":business_
+                                 "business":self.businessId
                                  }
             else:
                 self.queryParams =  {"package__isnull":'true',
                                  "ordering":"-pk",
                                  "business_category__name__icontains":category,
                                  "page":1,
-                                 "business":business_
+                                 "business":self.businessId
                                  }
         elif self.code == 'export_sales_per_product':
             self.queryParams =  {
-                "business": business_,
+                "business": self.businessId,
                 "date__gte": self.initDate+"T05:00:00.000Z",
                 "date__lte": self.endDate+"T04:59:59.999Z",
                 "page": 1
@@ -42,12 +46,12 @@ class ReportDownloader:
         elif self.code == 'export_packages':
             self.queryParams =  {
                                  "page":1,
-                                 "business":business_
+                                 "business":self.businessId
                                  }
 
         elif self.code == 'export_petty_cash_movements':
             self.queryParams =  {
-                "business": business_,
+                "business": self.businessId,
                 "date__gte": self.initDate+"T05:00:00.000Z",
                 "date__lte": self.endDate+"T04:59:59.999Z",
                 "page": 1,
@@ -55,7 +59,7 @@ class ReportDownloader:
             }
         elif self.code == 'export_payments_expenses':
             self.queryParams =  {
-                "business": business_,
+                "business": self.businessId,
                 "date__gte": self.initDate+"T05:00:00.000Z",
                 "date__lte": self.endDate+"T04:59:59.999Z",
                 "page": 1
@@ -97,7 +101,7 @@ class ReportDownloader:
             "to_date":self.endDate+"T04:59:59.999Z",
             "headers": self.repHeaders,
             "report_code":self.code,
-            "business":business_,
+            "business":self.businessId,
             "requested_by":9663,
             "name":self.rname,
             "query_params":self.queryParams
@@ -110,7 +114,7 @@ class ReportDownloader:
         self.reportName = j['name']
 
     def downloadReport(self):
-        url3 = uri_+'/v1/stats/requested-reports/?business='+str(business_)
+        url3 = uri_+'/v1/stats/requested-reports/?business='+str(self.businessId)
         r = requests.get(url3, headers=self.headers)
         j = r.json()
         print(f"Status Code: {r.status_code}, Response: {r.json()}")

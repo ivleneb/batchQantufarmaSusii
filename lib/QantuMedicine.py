@@ -88,3 +88,10 @@ class QantuMedicine(QantuProduct):
     
     def getCantidad(self):
         return self.cantidad
+    
+    def merge(self, prod):
+        super().merge(prod)
+        if self.isGenerico():
+            self.code = self.getFormula()+self.getConcentration()+self.getFF()+str(self.getCantidad())+'GEN'
+        else:
+            self.code = self.getPrincipioActivo()+self.getConcentration()+self.getFF()+str(self.getCantidad())+'MAR'

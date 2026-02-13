@@ -177,7 +177,7 @@ def createDataListToImportPack(prodDict, packDict):
 
         #if prod.getCategory()=='MEDICAMENTOS' and prod.isGenerico():
         if prod.getCategory()=='MEDICAMENTOS':
-            if prod.getFF() in ['TAB', 'TAB_REC', 'SOB_2_TAB_REC', 'CJA_1_TAB_REC']:
+            if prod.getFF() in ['TAB', 'TAB_REC', 'SOB_2_TAB_REC', 'CJA_1_TAB_REC', 'CAP']:
                 hasPack=False
                 hasCja = False
                 hasBlister = False

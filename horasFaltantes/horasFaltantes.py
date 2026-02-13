@@ -6,8 +6,8 @@ import json
 
 # Read JSON file
 with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    business_ = data["businessId"]
+    cfgData = json.load(file)
+    business_ = cfgData["businessId"]
 
 def getTime(date):
     arr = date.split() # date is in 'dd/MM/YYYY HH:mm' format
@@ -21,7 +21,7 @@ def toMinutes(hhmm):
     return hh*60+mm
 
 userRemain = {}
-enterTable = 1000
+enterTable = 900
 if business_ == 8132:
     enterTable = 900
 tolerance = 15
