@@ -262,14 +262,20 @@ class SusiiProductLoader:
                 
                 row = sub_df.iloc[i]
                 print(row['NOMBRE'])
-                lastProv=row['ÚLTIMO PROVEEDOR']
+                
+                if type(row['ÚLTIMO PROVEEDOR'])!=float and len(row['ÚLTIMO PROVEEDOR'])!=0:
+                    lastProv=row['ÚLTIMO PROVEEDOR']
+                else:
+                    lastProv=self.defaultProviders(prod)
+                    
                 soldUnits+=row['CANTIDAD TOTAL']
             # add sale data
             prod.setLastProvider(lastProv)
             #prod.setLastCost(row['ÚLTIMO PRECIO DE COMPRA'])
             #prod.setPrice(row['ACTUAL PRECIO DE VENTA'])
             prod.setSoldUnits(soldUnits)
-            prod.setLastProvider(self.defaultProviders(prod))
+            #if prod.getLastProvider() is None or len(prod.getLastProvider())==0:
+            #    prod.setLastProvider(self.defaultProviders(prod))
             #raise Exception("Code with multiple products.")
     
     def defaultProviders(self, prod):

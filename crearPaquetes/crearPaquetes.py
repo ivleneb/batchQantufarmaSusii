@@ -79,7 +79,7 @@ def createDataListToImportPack(prodDict, packDict):
     data = []
     count = 0
 
-    for key, prod in prodDict.items():
+    for prod in prodDict.values():
         count = count + 1
         
         if prod.getStock()<=0:
