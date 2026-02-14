@@ -16,6 +16,7 @@ import json
 class SusiiProductLoader:
     def __init__(self, businessId):
         self.businessId = businessId
+        self.prodSale_df = None
         
     def setBusinessId(self, businessId):
         self.businessId = businessId
@@ -25,8 +26,8 @@ class SusiiProductLoader:
     
     def downloadProducts(self, downloadSaleData:bool=False):
         today = datetime.now().strftime("%Y-%m-%d")
-        prodSale_df = None
-        if downloadSaleData:
+        #prodSale_df = None
+        if downloadSaleData and self.prodSale_df is None:
             # download sales per product
             repHeaders = ["CÓDIGO", "NOMBRE", "STOCK ACTUAL",
                           "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
@@ -37,8 +38,8 @@ class SusiiProductLoader:
             if file_sales == "":
                 sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
             
-            prodSale_df = pandas.read_excel(file_sales, skiprows=5)
-            print("REG SIZE (prod sales):"+str(len(prodSale_df)))
+            self.prodSale_df = pandas.read_excel(file_sales, skiprows=5)
+            print("REG SIZE (prod sales):"+str(len(self.prodSale_df)))
             
 
         
@@ -77,12 +78,50 @@ class SusiiProductLoader:
                 if prod.getCode() in productDict:
                     raise Exception("FATAL Index["+str(index)+"] Key must be unique")
                 if downloadSaleData:
-                    self.addSaleData(prod, prodSale_df)
+                    self.addSaleData(prod, self.prodSale_df)
                 productDict[prod.getCode()]=prod
-                
-                
+                    
         return productDict
     
+    def downloadPackages(self, downloadSaleData:bool=False):
+        today = datetime.now().strftime("%Y-%m-%d")
+        if downloadSaleData and self.prodSale_df is None:
+            # download sales per product
+            repHeaders = ["CÓDIGO", "NOMBRE", "STOCK ACTUAL",
+                          "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
+            rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
+                                  repHeaders, '2023-05-27',
+                                  today)
+            file_sales = rd.execute()
+            if file_sales == "":
+                sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
+            
+            self.prodSale_df = pandas.read_excel(file_sales, skiprows=5)
+            print("REG SIZE (prod sales):"+str(len(self.prodSale_df)))
+            
+        repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
+                  "CANTIDAD (ITEM)"]
+        rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
+                          repHeaders, '2024-02-12',
+                          today)
+        file_pack = rd.execute()
+        if file_pack == "":
+            sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+            
+        pack_df = pandas.read_excel(file_pack, skiprows=4)
+        print("REG SIZE (prack):"+str(len(pack_df)))
+        
+        # Load packages
+        packDict:dict[str, QantuPackage] = {}
+        for index, row in self.prodSale_df.iterrows():
+            # only add sales that are products
+            pack = self.getPackage(pack_df, row['CÓDIGO'])
+            if pack is not None:
+                pack.setSoldUnits(row['CANTIDAD TOTAL'])
+                packDict[pack.getCode()]=pack
+                
+        return packDict
+        
     def cobineProducts(self, prodDict):
         prodDict=combineMedicines(prodDict)
         prodDict=combineGalenicos(prodDict)
@@ -153,6 +192,19 @@ class SusiiProductLoader:
             return None
         else:
             raise Exception("Code with multiple products.")
+    
+    def getPackage(self, pack_df, code):
+        sub_df = pack_df.loc[pack_df['CÓDIGO'] == code]
+        if len(sub_df)>0:
+            row = sub_df.iloc[0]
+            pack = QantuPackage(row['CÓDIGO'], row['NOMBRE'])
+            for index, row in sub_df.iterrows():
+                #print(f"Adding {row['NOMBRE (ITEM)']} X {row['CANTIDAD (ITEM)']} to {row['NOMBRE']}")
+                pack.addItem(row['CÓDIGO (ITEM)'], row['CANTIDAD (ITEM)'])
+            return pack
+        else:
+            #print(f"Package {code} not found, invalid or deleted")
+            return None
     
     def isNumeric(self, col, df):
         if col in df.columns:

@@ -6,7 +6,6 @@ from lib.QantuDevice import QantuDevice
 from lib.QantuGeneral import QantuGeneral
 from lib.QantuPackage import QantuPackage
 from lib.QantuProduct import QantuProduct
-#from lib.PriceManager import PriceManager
 from lib.ReportDownloader import ReportDownloader
 import pandas
 from datetime import datetime

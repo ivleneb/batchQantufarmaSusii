@@ -68,10 +68,10 @@ def run():
                 if prod2.getCategory()=='MEDICAMENTOS':
                     if prod2.getUnitsBlister()>0 and prod2.getStock()>prod2.getUnitsBlister() and prod2.getStock()-prod2.getUnitsBlister()>0:
                         print("Trasladar!")
-                        moveList.append([prod.getCode(), prod.getName(), prod2.getUnitsBlister()])
+                        moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsBlister()])
                     elif prod2.getUnitsCaja()>0 and prod2.getStock()>prod2.getUnitsCaja() and prod2.getStock()-prod2.getUnitsCaja()>0:
                         print("Trasladar!")
-                        moveList.append([prod.getCode(), prod.getName(), prod2.getUnitsCaja()])
+                        moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsCaja()])
                     else:
                         print("Check units blister or units cja.")
                 elif prod2.getCategory()!='MEDICAMENTOS' and prod2.getStock()>1:
