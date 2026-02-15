@@ -9,6 +9,7 @@ class QantuProduct:
                  price=None, cost=None, commPer=0.10, otc='Y',
                  alias=None, unidad=None):
         self.name = re.sub(' +', ' ', name)
+        self.name = self.name.upper()
         self.mergedName = self.name
         self.category = category
         self.code = code

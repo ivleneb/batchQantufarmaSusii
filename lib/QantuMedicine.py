@@ -95,3 +95,6 @@ class QantuMedicine(QantuProduct):
             self.code = self.getFormula()+self.getConcentration()+self.getFF()+str(self.getCantidad())+'GEN'
         else:
             self.code = self.getPrincipioActivo()+self.getConcentration()+self.getFF()+str(self.getCantidad())+'MAR'
+            
+    def getFFSimple(self):
+        return self.ff.removesuffix("_REC")        

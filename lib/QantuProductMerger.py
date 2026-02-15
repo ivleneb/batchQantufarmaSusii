@@ -64,7 +64,7 @@ class QantuProductMerger:
                     
                     if formu == prod2.getFormula():
                         if cc == prod2.getConcentration():
-                            if ff == prod2.getFF():
+                            if ff == prod2.getFFSimple():
                                 if qq == prod2.getCantidad():
                                     print("MERGING:"+prod.getName()+" AND "+prod2.getName())
                                     prod.merge(prod2)
@@ -84,7 +84,7 @@ class QantuProductMerger:
                     
                     if prod.getPrincipioActivo()!="" and (prod.getPrincipioActivo() == prod2.getPrincipioActivo()):
                         if cc == prod2.getConcentration():
-                            if ff == prod2.getFF():
+                            if ff == prod2.getFFSimple():
                                 if qq == prod2.getCantidad():
                                     print("MERGING:"+prod.getName()+" AND "+prod2.getName())
                                     prod.merge(prod2)
