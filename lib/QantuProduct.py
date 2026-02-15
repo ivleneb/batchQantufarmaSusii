@@ -134,6 +134,9 @@ class QantuProduct:
     def getCategory(self):
         return self.category
     
+    def setCategory(self, category):
+        self.category = category
+    
     def getCode(self):
         return self.code
     

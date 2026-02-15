@@ -1,92 +1,103 @@
 import sys
 sys.path.append(r'../')
 from lib.QantuProduct import QantuProduct
-from lib.QantuProductMerger import QantuProductMerger
 from lib.QantuConfiguration import QantuConfiguration
 from datetime import datetime
 from lib.SusiiProductLoader import SusiiProductLoader
-import json
 import pandas
 
-otherBusiness = 8132
-lazaro = 8132
 cobian = 5053
 # load configuration
 config = QantuConfiguration()
 # business id
 business_ = config.business_
 if business_ == cobian:
-    otherBusiness = lazaro
-elif business_ == lazaro:
-    otherBusiness = cobian
-else:
-    print("FATAL invalid business "+str(business_))
+    print("FATAL invalid business "+str(business_)+" must be different than COBIAN (Q1)")
     sys.exit(1)
 
-def generateReport(moveList):
-    cols3 = [ "CÓDIGO", "NOMBRE", "CANTIDAD"]
-    move_df = pandas.DataFrame(moveList, columns = cols3)
+def generateImportFile(impList):
+    data = []
+    count = 0
+
+    for prod in impList:
+        count = count + 1
+        
+        ls = [ prod.getCode(), prod.getName(), prod.getAlias(), prod.getUnidad(),
+            prod.getPrice(), round(prod.getLastCost(), 3), prod.getStock(), prod.getNumRegSan(),
+            prod.getBrand(), prod.getDisable(), prod.getCreatedAt(), prod.getGenerico(),
+            prod.getFechaVto(), prod.getNroLote(), prod.getAdicional(), prod.getOtc(),
+            prod.getTempAlm(), prod.getUnitsBlister(), prod.getUnitsCaja(), prod.getTipoTratamiento(), prod.getPriceLogic(),
+            prod.getSeg1(), prod.getSeg2(), prod.getSeg3(),
+            prod.getMonedaDeVenta(),
+            prod.getMonedaDeCompra(), prod.getConStock(), prod.getCategory(),  prod.getImpuesto(),
+            prod.getPesoBruto(), prod.getMinStock(), prod.getPorcentajeDeGanancia(), prod.getDescuento(),
+            prod.getTipoDeDescuento(), prod.getBusquedaDesdeVentas(), prod.getCategoriaSunat()
+        ]
+        
+        data.append(ls)
+    
+    
+    cols2 = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "PRECIO DE COMPRA", "CANTIDAD",
+            "num_regsan (EXTRA)", "lab (EXTRA)", "disable (EXTRA)", "creado (EXTRA)", "generico (EXTRA)", "fecha_vto (EXTRA)",
+            "nro_lote (EXTRA)", "adicional (EXTRA)", "otc (EXTRA)", "temp_alm (EXTRA)", "units_blister (EXTRA)",
+            "units_caja (EXTRA)", "tipo_tratamiento (EXTRA)", "price_logic (EXTRA)", "seg_1 (EXTRA)", "seg_2 (EXTRA)", "seg_3 (EXTRA)",
+            "MONEDA DE VENTA", "MONEDA DE COMPRA", "CON STOCK", "CATEGORÍA",
+            "IMPUESTO", "PESO BRUTO (KGM)", "STOCK MÍNIMO", "PORCENTAJE DE GANANCIA", "DESCUENTO", "TIPO DE DESCUENTO",
+            "BÚSQUEDA DESDE VENTAS", "CATEGORÍA SUNAT"
+            ]
+
+
+    import_df = pandas.DataFrame(data, columns = cols2)
     now = datetime.now().strftime("%Y%m%d")
-    excel_name = str(business_)+'_ToMoveFrom'+str(otherBusiness)+'_'+now+'.xlsx'
+    excel_name = str(business_)+'_Replica_'+now+'.xlsx'
     with pandas.ExcelWriter(excel_name) as excel_writer:
-        move_df.to_excel(excel_writer, index=False)
+        import_df.to_excel(excel_writer, index=False)
 
 def run():
-    loader = SusiiProductLoader(business_)
+    loader = SusiiProductLoader(cobian)
 
     # load products from q1
-    productDict:dict[str, QantuProduct] = loader.downloadProducts(downloadSaleData=True)
+    productDict:dict[str, QantuProduct] = loader.downloadProducts()
     if not productDict:
         print("Fail to downloadProducts.")
         sys.exit(2)
 
-    productDict = QantuProductMerger.combineProducts(productDict)
-
     # load products from q2
-    loader.setBusinessId(otherBusiness)
+    loader.setBusinessId(business_)
     productDictOther:dict[str, QantuProduct] = loader.downloadProducts()
     if not productDictOther:
         print("Fail to downloadProducts from OTHER.")
         sys.exit(3)
     
-    productDictOther = QantuProductMerger.combineProducts(productDictOther)
-    
+    impList = []
     # for p1 in products of q1
-    moveList = []
     for prodCode in productDict:
-        prod = productDict[prodCode]
-        active_days = prod.getActiveDays()
-        if active_days==0:
-            print("Active days is 0, default to 1")
-            active_days=1
-        stock = prod.getStock()
-        daily_mean = prod.getSoldUnits()/active_days
-        requestQtty = 30*daily_mean - stock
-        # if p1.pedirValue>=0 and stock of p1 in q1 is 0
-        if requestQtty > 0 and stock == 0:
-            print("Prod["+prod.getName()+"] require units.")
-            # if p1 exist in q2 and p1 stock in q2 >= unitsBlister
-            if prodCode in productDictOther:
-                # agregar a lista de traslado 1 blister
-                prod2 = productDictOther[prodCode]
-                if prod2.getCategory()=='MEDICAMENTOS':
-                    if prod2.getUnitsBlister()>0 and prod2.getStock()>prod2.getUnitsBlister() and prod2.getStock()-prod2.getUnitsBlister()>0:
-                        print("Trasladar!")
-                        moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsBlister()])
-                    elif prod2.getUnitsCaja()>0 and prod2.getStock()>prod2.getUnitsCaja() and prod2.getStock()-prod2.getUnitsCaja()>0:
-                        print("Trasladar!")
-                        moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsCaja()])
-                    else:
-                        print("Check units blister or units cja.")
-                elif prod2.getCategory()!='MEDICAMENTOS' and prod2.getStock()>1:
-                    print("Trasladar!")
-                    moveList.append([prod.getCode(), prod.getName(), 1])
-                else:
-                    print("There is not enough stock.")
-            else:
-                print("Prod["+prod.getName()+"] NOT in OTHER store.")
-
+        # if product exist in the other store
+        if prodCode in productDictOther:
+            # copy values from main (q1) to other store
+            prod = productDictOther[prodCode]
+            prodBase = productDict[prodCode]
+            prod.setName(prodBase.getName())
+            prod.setCategory(prodBase.getCategory())
+            prod.setBrand(prodBase.getBrand())
+            prod.setPriceLogic(prodBase.getPriceLogic())
+            prod.setTipoTratamiento(prodBase.getTipoTratamiento())
+            prod.setUnitsBlister(prodBase.getUnitsBlister())
+            prod.setUnitsCaja(prodBase.getUnitsCaja())
+            prod.setOtc(prodBase.getOtc())
+            prod.setSeg1(prodBase.getSeg1())
+            prod.setSeg2(prodBase.getSeg2())
+            prod.setSeg3(prodBase.getSeg3())
+            
+            if pandas.isna(prod.getGenerico()):
+                prod.setGenerico(prodBase.getGenerico())
+            
+            if len(prod.getNroLote())>0 and prod.getNroLote()==prodBase.getNroLote():
+                prod.setFechaVto(prodBase.getFechaVto())
+                prod.setNumRegSan(prodBase.getNumRegSan())
+                
+            impList.append(prod)
     
-    generateReport(moveList)
+    generateImportFile(impList)
 
 run()

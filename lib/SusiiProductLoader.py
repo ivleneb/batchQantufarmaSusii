@@ -260,6 +260,8 @@ class SusiiProductLoader:
             sys.exit(4)
         else:
             prod_df["price_logic (EXTRA)"] = prod_df["price_logic (EXTRA)"].fillna(1)
+            
+        prod_df["nro_lote (EXTRA)"] = prod_df["nro_lote (EXTRA)"].fillna("")
     
     def addSaleData(self, prod, sale_df):
         sub_df = sale_df.loc[sale_df['CÓDIGO'] == prod.getCode()]
