@@ -7,7 +7,6 @@ from lib.SusiiProductLoader import SusiiProductLoader
 import pandas
 import numpy as np
 
-cobian = 5053
 # load configuration
 config = QantuConfiguration()
 # business id
@@ -66,7 +65,7 @@ def validDate(dt):
         return False
 
 def run():
-    loader = SusiiProductLoader(cobian)
+    loader = SusiiProductLoader(business_)
 
     # load products from q1
     productDict:dict[str, QantuProduct] = loader.downloadProducts()
@@ -104,7 +103,6 @@ def run():
         if prod.getCategory()=='MEDICAMENTOS':
             
             tt = prod.getTipoTratamiento()
-            print(type(tt))
             if isVoid(tt):
                 errorList.append([prodCode, name, "TIPO TRATAMIENTO", "Valor vacío", tt])
             validVals = [0,1]
