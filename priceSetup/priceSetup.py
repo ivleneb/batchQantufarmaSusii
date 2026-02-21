@@ -7,6 +7,7 @@ from lib.QantuConfiguration import QantuConfiguration
 from lib.SusiiProductLoader import SusiiProductLoader
 import pandas
 from datetime import datetime
+from pathlib import Path
 
 # load configuration
 config = QantuConfiguration()
@@ -214,13 +215,13 @@ def run():
     loader = SusiiProductLoader(business_)
 
     # load products from q1
-    productDict:dict[str, QantuProduct] = loader.downloadProducts()
+    productDict:dict[str, QantuProduct] = loader.downloadProducts(backup=True)
     if not productDict:
         print("Fail to downloadProducts.")
         sys.exit(2)
 
     # load products from q1
-    packageDict:dict[str, QantuPackage] = loader.downloadPackages()
+    packageDict:dict[str, QantuPackage] = loader.downloadPackages(backup=True)
     if not packageDict:
         print("Fail to downloadPackages.")
         sys.exit(3)
@@ -233,25 +234,25 @@ def run():
         else:
             otherDict[key]=prod
 
-    dataMeds = createDataList(medsDict)
-    dataOther = createDataList(otherDict)
-    dataPack = createDataListPack(packageDict)
+    #dataMeds = createDataList(medsDict)
+    #dataOther = createDataList(otherDict)
+    #dataPack = createDataListPack(packageDict)
         
-    cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'MCu', 
-            'MCup', 'MCups', 'SUGERIDO', 'FF', 'GEN' ]
+    #cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'MCu', 
+    #        'MCup', 'MCups', 'SUGERIDO', 'FF', 'GEN' ]
 
-    outMed_df = pandas.DataFrame(dataMeds, columns = cols)
-    outOther_df = pandas.DataFrame(dataOther, columns = cols)
-    outPack_df = pandas.DataFrame(dataPack, columns = cols)
+    #outMed_df = pandas.DataFrame(dataMeds, columns = cols)
+    #outOther_df = pandas.DataFrame(dataOther, columns = cols)
+    #outPack_df = pandas.DataFrame(dataPack, columns = cols)
 
-    now = datetime.now().strftime("%Y%m%d")
-    excel_name = 'PriceSetup_'+now+'.xlsx'
+    #now = datetime.now().strftime("%Y%m%d")
+    #excel_name = 'PriceSetup_'+now+'.xlsx'
 
-    with pandas.ExcelWriter(excel_name) as excel_writer:
-        outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
-        outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
-        outPack_df.to_excel(excel_writer, sheet_name='Paquetes', index=False)
-
+    #with pandas.ExcelWriter(excel_name) as excel_writer:
+    #    outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
+    #    outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
+    #    outPack_df.to_excel(excel_writer, sheet_name='Paquetes', index=False)
+    
 
     cols2 = ["CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "PRECIO DE COMPRA", "CANTIDAD",
             "num_regsan (EXTRA)", "lab (EXTRA)", "disable (EXTRA)", "creado (EXTRA)", "generico (EXTRA)", "fecha_vto (EXTRA)",
@@ -265,18 +266,12 @@ def run():
 
     import_prods = createDataListToImport(medsDict)
     import_df = pandas.DataFrame(import_prods, columns = cols2)
-
-    excel_name = str(business_)+'_PriceToImportMeds_'+now+'.xlsx'
-    with pandas.ExcelWriter(excel_name) as excel_writer:
-        import_df.to_excel(excel_writer, index=False)
+    createFileReport(import_df, 'PriceToImportMeds')
         
     
     import_prods = createDataListToImport(otherDict)
     import_df = pandas.DataFrame(import_prods, columns = cols2)
-
-    excel_name = str(business_)+'_PriceToImportOther_'+now+'.xlsx'
-    with pandas.ExcelWriter(excel_name) as excel_writer:
-        import_df.to_excel(excel_writer, index=False)
+    createFileReport(import_df, 'PriceToImportOther')
 
     cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
               "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"
@@ -284,9 +279,16 @@ def run():
 
     import_pack = createDataListToImportPack(productDict, packageDict)
     importpk_df = pandas.DataFrame(import_pack, columns = cols3)
-    excel_name = str(business_)+'_PriceToImportPack_'+now+'.xlsx'
-    with pandas.ExcelWriter(excel_name) as excel_writer:
-        importpk_df.to_excel(excel_writer, index=False)
+    createFileReport(importpk_df, 'PriceToImportPack')
 
+
+def createFileReport(df, mask):
+    now = datetime.now().strftime("%Y%m%d")
+    package_path = Path(__file__).parent
+    ruta_out = package_path / "out"
+    fname = str(business_)+'_'+mask+'_'+now+'.xlsx'
+    excel_name = ruta_out / fname
+    with pandas.ExcelWriter(excel_name) as excel_writer:
+        df.to_excel(excel_writer, index=False)
 
 run()

@@ -1,4 +1,4 @@
-import sys
+import sys, os
 sys.path.append(r'../')
 from lib.QantuMedicine import QantuMedicine
 from lib.QantuGalenico import QantuGalenico
@@ -6,12 +6,12 @@ from lib.QantuDevice import QantuDevice
 from lib.QantuGeneral import QantuGeneral
 from lib.QantuPackage import QantuPackage
 from lib.QantuProduct import QantuProduct
-#from lib.PriceManager import PriceManager
 from lib.ReportDownloader import ReportDownloader
 import pandas
 from datetime import datetime
 import json
 import numpy as np
+import shutil
 
 
 class SusiiProductLoader:
@@ -26,7 +26,7 @@ class SusiiProductLoader:
     def getBusinessId(self):
         return self.businessId
     
-    def downloadProducts(self, downloadSaleData:bool=False):
+    def downloadProducts(self, downloadSaleData:bool=False, backup:bool=False):
         today = datetime.now().strftime("%Y-%m-%d")
         #prodSale_df = None
         if downloadSaleData and self.prodSale_df is None:
@@ -48,6 +48,9 @@ class SusiiProductLoader:
         file_prod = rd.execute()
         if file_prod == "":
             sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+        
+        if backup:
+            self.makeBackup(file_prod)
         
         prod_df = pandas.read_excel(file_prod, skiprows=4)
         print("REG SIZE (prod):"+str(len(prod_df)))
@@ -74,7 +77,7 @@ class SusiiProductLoader:
                     
         return productDict
     
-    def downloadPackages(self, downloadSaleData:bool=False):
+    def downloadPackages(self, downloadSaleData:bool=False, backup:bool=False):
         today = datetime.now().strftime("%Y-%m-%d")
         
         if self.productDict is None:
@@ -93,6 +96,9 @@ class SusiiProductLoader:
         file_pack = rd.execute()
         if file_pack == "":
             sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+            
+        if backup:
+            self.makeBackup(file_pack)
             
         pack_df = pandas.read_excel(file_pack, skiprows=4)
         print("REG SIZE (prack):"+str(len(pack_df)))
@@ -239,9 +245,17 @@ class SusiiProductLoader:
             return False
     
     def validateProductDf(self, prod_df):
+        if not self.isNumeric('disable (EXTRA)', prod_df):
+            print("Columna 'disable (EXTRA)' tiene valores no numéricos.")
+            sys.exit(1)
+        else:
+            prod_df["disable (EXTRA)"] = prod_df["disable (EXTRA)"].fillna(0)
+        
         if not self.isNumeric('generico (EXTRA)', prod_df):
             print("Columna 'generico (EXTRA)' tiene valores no numéricos.")
             sys.exit(1)
+        else:
+            prod_df["generico (EXTRA)"] = prod_df["generico (EXTRA)"].fillna(0)
 
         if not self.isNumeric('units_blister (EXTRA)', prod_df):
             print("Columna 'units_blister (EXTRA)' tiene valores no numéricos.")
@@ -262,7 +276,12 @@ class SusiiProductLoader:
             prod_df["price_logic (EXTRA)"] = prod_df["price_logic (EXTRA)"].fillna(1)
         
         prod_df["nro_lote (EXTRA)"] = prod_df["nro_lote (EXTRA)"].fillna("")
-        prod_df["tipo_tratamiento (EXTRA)"] = prod_df["tipo_tratamiento (EXTRA)"].fillna(0)
+
+        if not self.isNumeric('tipo_tratamiento (EXTRA)', prod_df):
+            print("Columna 'tipo_tratamiento (EXTRA)' tiene valores no numéricos.")
+            #sys.exit(1)
+        else:
+            prod_df["tipo_tratamiento (EXTRA)"] = prod_df["tipo_tratamiento (EXTRA)"].fillna(0)
     
     def addSaleData(self, prod, sale_df):
         sub_df = sale_df.loc[sale_df['CÓDIGO'] == prod.getCode()]
@@ -334,3 +353,21 @@ class SusiiProductLoader:
             return "CBC pref"
         else:
             return "LIMACENTER pref"
+    
+    def makeBackup(self, archivo_origen):
+        now = datetime.now().strftime("%Y%m%d")
+        archivo_destino = "bkp_"+now+"_"+archivo_origen
+
+        # Crear directorio de destino si no existe
+        directorio_destino = "backups"
+        if not os.path.exists(directorio_destino):
+            os.makedirs(directorio_destino)
+        
+        fullpath = os.path.join(directorio_destino, archivo_destino)
+        try:
+            shutil.copy(archivo_origen, fullpath)
+            print(f"Archivo copiado de {archivo_origen} a {fullpath}")
+        except FileNotFoundError:
+            print(f"Error: El archivo {archivo_origen} no existe")
+        except PermissionError:
+            print("Error: No tienes permisos para leer/escribir")

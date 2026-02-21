@@ -79,7 +79,7 @@ def run():
         # copy values from main (q1) to other store
         prod = productDict[prodCode]
         
-        if prod.getStock()<=0:
+        if prod.getStock()<=0 or prod.getCategory()=='OFICINA':
             continue
         
         name = prod.getName()

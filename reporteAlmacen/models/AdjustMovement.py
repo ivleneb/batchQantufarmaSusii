@@ -22,7 +22,7 @@ class AdjustMovement(WarehouseMovement):
         self.costFinal = 0.0
         
         obs = self.getObs()
-        obs = obs.upper()
+        #obs = obs.upper()
         obsLsDirty = obs.split('\n')
         obsLsSpaces = [ elem for elem in obsLsDirty if elem != '' ]
         obsLs = [ elem.replace(" ", "") for elem in obsLsSpaces ]
@@ -36,7 +36,7 @@ class AdjustMovement(WarehouseMovement):
         for i in range(len(obsLs)):
             if self.pCode in obsLs[i]:
                 try:
-                    motiveStr = obsLs[i+1]
+                    motiveStr = obsLs[i+1].upper()
                     if 'MOTIVO' in motiveStr:
                         motiveLs = motiveStr.split(':')
                         self.motive = motiveLs[1]
@@ -46,7 +46,7 @@ class AdjustMovement(WarehouseMovement):
                         self.comm += comm
                         return
                     
-                    quantStr = obsLs[i+2]
+                    quantStr = obsLs[i+2].upper()
                     if 'CANTIDAD' in quantStr:
                         quantLs = quantStr.split(':')
                         self.quant = quantLs[1]
@@ -56,7 +56,7 @@ class AdjustMovement(WarehouseMovement):
                         self.comm += comm
                         return
                     
-                    costStr = obsLs[i+3]
+                    costStr = obsLs[i+3].upper()
                     if 'MONTO' in costStr:
                         costLs = costStr.split(':')
                         self.cost = costLs[1]
@@ -67,7 +67,7 @@ class AdjustMovement(WarehouseMovement):
                         return
                     
                     if 0<= i+4 <len(obsLs):
-                        nroStr = obsLs[i+4]
+                        nroStr = obsLs[i+4].upper()
                         if 'NRO' in nroStr:
                             nroLs = nroStr.split(':')
                             self.nro = nroLs[1]

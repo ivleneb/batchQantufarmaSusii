@@ -5,6 +5,7 @@ from lib.QantuConfiguration import QantuConfiguration
 from datetime import datetime
 from lib.SusiiProductLoader import SusiiProductLoader
 import pandas
+from pathlib import Path
 
 cobian = 5053
 # load configuration
@@ -49,7 +50,10 @@ def generateImportFile(impList):
 
     import_df = pandas.DataFrame(data, columns = cols2)
     now = datetime.now().strftime("%Y%m%d")
-    excel_name = str(business_)+'_Replica_'+now+'.xlsx'
+    package_path = Path(__file__).parent
+    ruta_out = package_path / "out"
+    fname = str(business_)+'_Replica_'+now+'.xlsx'
+    excel_name = ruta_out / fname
     with pandas.ExcelWriter(excel_name) as excel_writer:
         import_df.to_excel(excel_writer, index=False)
 
@@ -57,14 +61,14 @@ def run():
     loader = SusiiProductLoader(cobian)
 
     # load products from q1
-    productDict:dict[str, QantuProduct] = loader.downloadProducts()
+    productDict:dict[str, QantuProduct] = loader.downloadProducts(backup=True)
     if not productDict:
         print("Fail to downloadProducts.")
         sys.exit(2)
 
     # load products from q2
     loader.setBusinessId(business_)
-    productDictOther:dict[str, QantuProduct] = loader.downloadProducts()
+    productDictOther:dict[str, QantuProduct] = loader.downloadProducts(backup=True)
     if not productDictOther:
         print("Fail to downloadProducts from OTHER.")
         sys.exit(3)
