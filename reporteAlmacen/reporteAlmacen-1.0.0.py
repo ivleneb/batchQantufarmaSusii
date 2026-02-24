@@ -4,14 +4,14 @@ from reports.WarehouseMovementReport import WarehouseMovementReport
 from lib.RequestHandler import RequestHandler
 import json
 
+from lib.QantuConfiguration import QantuConfiguration
 
-# Read JSON file
-with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    user_ = data["user"]
-    pass_ = data["password"]
-    uri_ = data["uri"]
-    business_ = data["businessId"]
+config = QantuConfiguration()
+# credentials
+business_ = config.business_
+user_ = config.user_
+pass_ = config.pass_
+uri_ = config.uri_
      
 lsMove=[]
 

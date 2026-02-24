@@ -2,14 +2,16 @@ import requests
 import time
 
 import json
+import sys
+sys.path.append(r'../')
+from lib.QantuConfiguration import QantuConfiguration
 
-# Read JSON file
-with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    user_ = data["user"]
-    pass_ = data["password"]
-    uri_ = data["uri"]
-    business_ = data["businessId"]
+config = QantuConfiguration()
+# credentials
+business_ = config.business_
+user_ = config.user_
+pass_ = config.pass_
+uri_ = config.uri_
 
 class FileDownloader:
     def __init__(self, init, end):

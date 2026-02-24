@@ -2,7 +2,6 @@ import sys
 sys.path.append(r'../')
 import json
 
-
 class QantuConfiguration:
     
     # Pedir stock para NBR_DAYS dias (default 30)
@@ -11,6 +10,11 @@ class QantuConfiguration:
     stock_0 = False
     # bussines id
     business_ = 0
+    # credential
+    user_ = None
+    pass_ = None
+    # uri
+    uri_ = None
     
     def __init__(self):
         # Read JSON file
@@ -19,3 +23,6 @@ class QantuConfiguration:
             QantuConfiguration.business_ = dataCfg["businessId"]
             QantuConfiguration.NBR_DAYS = dataCfg["nbrDays"]
             QantuConfiguration.stock_0 = dataCfg["zeroStock"]
+            QantuConfiguration.user_ = dataCfg["credentials"][str(QantuConfiguration.business_)]["user"]
+            QantuConfiguration.pass_ = dataCfg["credentials"][str(QantuConfiguration.business_)]["password"]
+            QantuConfiguration.uri_ = dataCfg["uri"]

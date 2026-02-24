@@ -5,14 +5,16 @@ import os
 import json
 
 # Read JSON file
-script_dir = os.path.dirname(os.path.abspath(__file__))
-ruta_completa = os.path.join(script_dir, "", "cfg.json")
-with open(ruta_completa, 'r', encoding='utf-8') as file:
-    data = json.load(file)
-    user_ = data["user"]
-    pass_ = data["password"]
-    uri_ = data["uri"]
-    business_ = data["businessId"]
+import sys
+sys.path.append(r'../')
+from lib.QantuConfiguration import QantuConfiguration
+
+config = QantuConfiguration()
+# credentials
+business_ = config.business_
+user_ = config.user_
+pass_ = config.pass_
+uri_ = config.uri_
 
 class RequestHandler:
     def __init__(self, uri, payload=None):
