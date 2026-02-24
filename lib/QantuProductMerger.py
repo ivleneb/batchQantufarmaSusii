@@ -40,7 +40,7 @@ class QantuProductMerger:
             if cc == "":
                 print("WARNING: Invalid CC for MED "+prod.getName())
                 continue
-            ff  = prod.getFF()
+            ff  = prod.getFFSimple()
             if ff == "":
                 print("WARNING: Invalid FF for MED "+prod.getName())
                 continue
@@ -61,6 +61,8 @@ class QantuProductMerger:
                     prod2 = prodDict[code2]
                     if prod2.getCategory() != 'MEDICAMENTOS':
                         continue
+                    if not prod2.isGenerico():
+                        continue
                     
                     if formu == prod2.getFormula():
                         if cc == prod2.getConcentration():
@@ -70,7 +72,6 @@ class QantuProductMerger:
                                     prod.merge(prod2)
                                     del prodDict[code2]
             else:
-                #print("NOT GENERIC:"+prod.getName())
                 for code2 in list(prodDict):
                     if code == code2:
                         continue
@@ -78,6 +79,8 @@ class QantuProductMerger:
                         continue
                     prod2 = prodDict[code2]
                     if prod2.getCategory() != 'MEDICAMENTOS':
+                        continue
+                    if prod2.isGenerico():
                         continue
                     if prod2.valBrand()==2:
                         continue
@@ -101,15 +104,14 @@ class QantuProductMerger:
             prod = prodDict[code]
             if prod.getCategory() != 'GALENICOS':
                 continue
-            #print("Get formula")
+
             formu = prod.getFormula()
             if formu == "":
                 print("WARNING: Invalid formula["+prod.getName()+"]")
                 continue
-            ##print("Get CC")
+
             cc = prod.getConcentration()
 
-            ##print("Get Qtty")
             qtty = prod.getQtty()
             if qtty == "":
                 print("WARNING: Invalid qtty["+prod.getName()+"]")
