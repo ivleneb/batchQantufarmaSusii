@@ -17,6 +17,7 @@ class QantuConfiguration:
     uri_ = None
     
     def __init__(self):
+        self.dataCfg = None
         # Read JSON file
         with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
             dataCfg = json.load(file)
@@ -26,3 +27,10 @@ class QantuConfiguration:
             QantuConfiguration.user_ = dataCfg["credentials"][str(QantuConfiguration.business_)]["user"]
             QantuConfiguration.pass_ = dataCfg["credentials"][str(QantuConfiguration.business_)]["password"]
             QantuConfiguration.uri_ = dataCfg["uri"]
+            self.dataCfg = dataCfg
+    
+    def getUserForBusiness(self, business):
+        return self.dataCfg["credentials"][str(business)]["user"]
+    
+    def getPasswordForBusiness(self, business):
+        return self.dataCfg["credentials"][str(business)]["password"]

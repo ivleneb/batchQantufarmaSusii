@@ -6,18 +6,17 @@ import sys
 sys.path.append(r'../')
 from lib.QantuConfiguration import QantuConfiguration
 
-config = QantuConfiguration()
-# credentials
-business_ = config.business_
-user_ = config.user_
-pass_ = config.pass_
-uri_ = config.uri_
-
 class FileDownloader:
     def __init__(self, init, end):
         self.initDate = init
         self.endDate = end
         self.purchases = {}
+        config = QantuConfiguration()
+        # credentials
+        self.business_ = config.business_
+        self.user_ = config.user_
+        self.pass_ = config.pass_
+        self.uri_ = config.uri_
         
     def execute(self):
         self.login()
@@ -31,10 +30,10 @@ class FileDownloader:
         return True
         
     def login(self):
-        url = uri_+'/auth/login/'
+        url = self.uri_+'/auth/login/'
         payload = {
-            'username': user_,
-            'password': pass_
+            'username': self.user_,
+            'password': self.pass_
         }
 
         r = requests.post(url, json=payload)
@@ -47,7 +46,7 @@ class FileDownloader:
         
     def listPurchases(self):
         for i in range(1,4):
-            url2 = uri_+"/purchases/purchases/" \
+            url2 = self.uri_+"/purchases/purchases/" \
                 "?page={0}&business="+str(business_)+"&date__gte={1}T05:00:00.000Z&"\
                 "date__lte={2}T04:59:59.999Z".format(i, self.initDate, self.endDate)
             
@@ -64,7 +63,7 @@ class FileDownloader:
         
 
     def download(self, number, purchase):
-        url3 = uri_+'/v1/purchases/purchases/'+str(purchase)+'/?business='+str(business_)
+        url3 = self.uri_+'/v1/purchases/purchases/'+str(purchase)+'/?business='+str(self.business_)
         r = requests.get(url3, headers=self.headers)
         j = r.json()
         print(f"Status Code: {r.status_code}, Response: {r.json()}")

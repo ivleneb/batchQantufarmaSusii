@@ -6,13 +6,6 @@ import sys
 sys.path.append(r'../')
 from lib.QantuConfiguration import QantuConfiguration
 
-config = QantuConfiguration()
-# credentials
-business_ = config.business_
-user_ = config.user_
-pass_ = config.pass_
-uri_ = config.uri_
-
 class ReportDownloader:
     def __init__(self, reportName, reportCode, headers, init, end, category=None, businessId=None):
         self.rname = reportName
@@ -20,10 +13,18 @@ class ReportDownloader:
         self.repHeaders = headers
         self.initDate = init
         self.endDate = end
-        self.businessId = business_
+        # credentials
+        config = QantuConfiguration()
+        self.uri_ = config.uri_
         if businessId != None:
             self.businessId = businessId
-            
+            self.user_ = config.getUserForBusiness(businessId)
+            self.pass_ = config.getPasswordForBusiness(businessId)
+        else:
+            self.businessId = config.business_
+            self.user_ = config.user_
+            self.pass_ = config.pass_
+
         if self.code == 'export_products':
             if category == None:
                 self.queryParams =  {"package__isnull":'true',
@@ -81,10 +82,10 @@ class ReportDownloader:
             return ""
         
     def login(self):
-        url = uri_+'/auth/login/'
+        url = self.uri_+'/auth/login/'
         payload = {
-            'username': user_,
-            'password': pass_
+            'username': self.user_,
+            'password': self.pass_
         }
 
         r = requests.post(url, json=payload)
@@ -96,7 +97,7 @@ class ReportDownloader:
         print(self.headers)
         
     def requestReport(self):
-        url2 = uri_+'/v1/stats/requested-reports/'
+        url2 = self.uri_+'/v1/stats/requested-reports/'
         payload2 = {
             "format":"xlsx",
             "from_date":self.initDate+"T04:11:58.791Z",
@@ -116,7 +117,7 @@ class ReportDownloader:
         self.reportName = j['name']
 
     def downloadReport(self):
-        url3 = uri_+'/v1/stats/requested-reports/?business='+str(self.businessId)
+        url3 = self.uri_+'/v1/stats/requested-reports/?business='+str(self.businessId)
         r = requests.get(url3, headers=self.headers)
         j = r.json()
         print(f"Status Code: {r.status_code}, Response: {r.json()}")

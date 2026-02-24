@@ -92,7 +92,7 @@ class SusiiProductLoader:
               "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"]
         rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
                           repHeaders, '2024-02-12',
-                          today)
+                          today, businessId=self.businessId)
         file_pack = rd.execute()
         if file_pack == "":
             sys.exit("Can't dowloand file[Exportar productos.xlsx]")
@@ -129,7 +129,7 @@ class SusiiProductLoader:
                       "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
         rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
                               repHeaders, '2023-05-27',
-                              today)
+                              today, businessId=self.businessId)
         file_sales = rd.execute()
         if file_sales == "":
             sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
