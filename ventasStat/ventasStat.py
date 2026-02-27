@@ -6,10 +6,11 @@ from datetime import datetime
 from lib.ReportDownloader import ReportDownloader
 import json
 
-# Read JSON file
-with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    dataCfg = json.load(file)
-    business_ = dataCfg["businessId"]
+from lib.QantuConfiguration import QantuConfiguration
+
+config = QantuConfiguration()
+# business id
+business_ = config.business_
 
 class HourStat:
     def __init__(self, hour):

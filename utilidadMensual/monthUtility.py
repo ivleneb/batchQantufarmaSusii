@@ -3,9 +3,10 @@ sys.path.append('../')
 from lib.QantuProduct import QantuProduct
 from lib.QantuPackage import QantuPackage
 from lib.ReportDownloader import ReportDownloader
+from lib.QantuConfiguration import QantuConfiguration
+from lib.SusiiProductLoader import SusiiProductLoader
 import pandas
 from datetime import datetime
-import json
 
 colCosto = 'D'
 colPrecio = 'E'
@@ -14,66 +15,48 @@ colMargen = 'H'
 
 IGV=0.18
 
-# Read JSON file
-with open('../lib/cfg.json', 'r', encoding='utf-8') as file:
-    dataCfg = json.load(file)
-    business_ = dataCfg["businessId"]
+config = QantuConfiguration()
+# business id
+business_ = config.business_
 
 
-def addSaleData(prod, sale_df):
-    sub_df = sale_df.loc[sale_df['CÓDIGO'] == prod.getCode()]
-    if len(sub_df)==1:
-        row = sub_df.iloc[0]
-        # add sale data
-        #prod.setLastProvider(row['ÚLTIMO PROVEEDOR'])
-        prod.setSoldUnits(row['CANTIDAD TOTAL'])
-    elif len(sub_df)==0:
-        #print("Product ["+prod.getName()+"] never sale!")
-        prod.setSoldUnits(0)
-    else:
-        raise Exception("Code with multiple products.")
-
-def getProductDB(row):
-    return QantuProduct(row['CÓDIGO'], row['NOMBRE'], row['CANTIDAD'],
-                            row['disable (EXTRA)'], row['CATEGORÍA'], row['creado (EXTRA)'], row['STOCK MÍNIMO'],
-                             row['PRECIO DE VENTA'], row['PRECIO DE COMPRA'])
-
-def getProduct(prod_df, code):
-    sub_df = prod_df.loc[prod_df['CÓDIGO'] == code]
-    if len(sub_df)>0:
-        row = sub_df.iloc[0]
-        return QantuProduct(row['CÓDIGO'], row['NOMBRE'], row['CANTIDAD'],
-                                row['disable (EXTRA)'], row['CATEGORÍA'], row['creado (EXTRA)'], row['STOCK MÍNIMO'],
-                                 row['PRECIO DE VENTA'], row['PRECIO DE COMPRA'])
-    else:
-        return None
-
-def getPackage(pack_df, code, prodDBDict):
-    sub_df = pack_df.loc[pack_df['CÓDIGO'] == code]
-    if len(sub_df)>0:
-        row = sub_df.iloc[0]
-        pack = QantuPackage(row['CÓDIGO'], row['NOMBRE'], row['PRECIO DE VENTA'], category=row['CATEGORÍA'])
-        cost = 0
-        pName = pack.getName()
-        for index, row in sub_df.iterrows():
-            #print(f"Adding {row['NOMBRE (ITEM)']} X {row['CANTIDAD (ITEM)']} to {row['NOMBRE']}")
-            cantItem = row['CANTIDAD (ITEM)']
-            codeItem = row['CÓDIGO (ITEM)']
-            pack.addItem(codeItem, cantItem)
-            if codeItem in prodDBDict:
-                prod = prodDBDict[codeItem]
-                cost=cost+cantItem*prod.getLastCost()
-            else:
-                print(f"Package {code}[{pName}] item not found {codeItem}")
-            
-        pack.setCost(cost)
-        return pack
-    else:
-        return None
+def productSegment(summarySeg:dict[str,list], prod:QantuProduct, total, mcVal, mcrVal):
+    seg1 = prod.getSeg1()
+    seg2 = prod.getSeg2()
+    seg3 = prod.getSeg3()
+    if seg1 is not None and not pandas.isna(seg1) and len(seg1)>0:
+        seg1U = seg1.upper()
+        if seg1U in summarySeg:
+            summarySeg[seg1U][0]=summarySeg[seg1U][0]+total
+            summarySeg[seg1U][1]=summarySeg[seg1U][1]+mcVal
+            summarySeg[seg1U][2]=summarySeg[seg1U][2]+mcrVal
+        else:
+            summarySeg[seg1U]=[total, mcVal, mcrVal]
+    
+    if seg2 is not None and not pandas.isna(seg2) and len(seg2)>0:
+        seg2U = seg2.upper()
+        if seg2U in summarySeg:
+            summarySeg[seg2U][0]=summarySeg[seg2U][0]+total
+            summarySeg[seg2U][1]=summarySeg[seg2U][1]+mcVal
+            summarySeg[seg2U][2]=summarySeg[seg2U][2]+mcrVal
+        else:
+            summarySeg[seg2U]=[total, mcVal, mcrVal]
+        
+    if seg3 is not None and not pandas.isna(seg3) and len(seg3)>0:
+        seg3U = seg3.upper()
+        if seg3U in summarySeg:
+            summarySeg[seg3U][0]=summarySeg[seg3U][0]+total
+            summarySeg[seg3U][1]=summarySeg[seg3U][1]+mcVal
+            summarySeg[seg3U][2]=summarySeg[seg3U][2]+mcrVal
+        else:
+            summarySeg[seg3U]=[total, mcVal, mcrVal]
+        
+    return summarySeg
 
 def createDataList(packDict, prodDict):
     data = []
-    summary = {}
+    summary:dict[str, list] = {}
+    summarySeg:dict[str, list] = {}
     count = 0
 
     for key, prod in prodDict.items():
@@ -99,6 +82,8 @@ def createDataList(packDict, prodDict):
         else:
             summary[cat]=[total, mcVal, mcrVal]
         
+        summarySeg = productSegment(summarySeg, prod, total, mcVal, mcrVal)
+        
     for key, pack in packDict.items():
         count = count + 1
         mcu = '={colP}{rowP}-{colC}{rowC}'.format(colP=colPrecio, rowP=count+1,
@@ -122,17 +107,44 @@ def createDataList(packDict, prodDict):
         else:
             summary[cat]=[total, mcVal, mcrVal]
         
+        for code, prod in pack.itemsObj.items():
+            total = prod.getPrice()*pack.items[code]*pack.getSoldUnits()
+            mcVal = (prod.getPrice()-prod.getLastCost())*pack.items[code]*pack.getSoldUnits()
+            mcrVal = mcVal/(1+IGV)
+            summarySeg = productSegment(summarySeg, prod, total, mcVal, mcrVal)
     
     summaryData=[]
     for key in summary:
         summaryData.append([key, summary[key][0], summary[key][1], summary[key][2]])
     
-    return data, summaryData
+    largeName:dict[str,str]={
+    'DIG' : 'Salud Digestiva',
+    'AUX' : 'Primeros Auxilios',
+    'RES' : 'Salud Respiratoria',
+    'DEP' : 'Promocion del Deporte',
+    'HTA' : 'Cuidado del Hipertenso',
+    'TRB' : 'Salud del Trabajador',
+    'ORT' : 'Salud Ortopedica',
+    'KID' : 'Salud del niño',
+    'STR' : 'Control del estrés',
+    'BEBE' : 'Cuidado del bebé',
+    'FACE' : 'Cuido del rostro',
+    'CAB' : 'Cuidado del Cabello',
+    'PIEL' : 'Cuidado de la piel',
+    'ADM' : 'Cuidado del adulto mayor',
+    'PER' : 'Aseo Personal',
+    'BUC' : 'Salud bucal',
+    'REP' : 'Salud Reproductiva'}
+    summarySegData=[]
+    for key in summarySeg:
+        if key in largeName:
+            summarySegData.append([key, largeName[key],summarySeg[key][0], summarySeg[key][1], summarySeg[key][2]])
+        else:
+            summarySegData.append([key, "",summarySeg[key][0], summarySeg[key][1], summarySeg[key][2]])
+    
+    return data, summaryData, summarySegData
 
 def run():
-    prodDBDict = {}
-    prodDict = {}
-    packDict = {}
     # Enter period
     year = input("Enter year YYYY: ")
     month = input("Enter month mm: ")
@@ -150,34 +162,23 @@ def run():
     now = datetime.now().strftime("%Y-%m-%d")
 
     # download sales per product
-    repHeaders = ["CÓDIGO", "NOMBRE", "CANTIDAD TOTAL"]
-    rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
-                          repHeaders, beginDt,
-                          endDt)
-    file_sales = rd.execute()
-    if file_sales == "":
-        sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
+    loader = SusiiProductLoader(business_)
+    loader.setBeginDateSaleData(beginDt)
+    loader.setEndDateSaleData(endDt)
 
-    # download product data
-    repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
-                  "creado (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
-    rd = ReportDownloader("Exportar productos.xlsx", "export_products",
-                          repHeaders, '2024-02-12',
-                          now)
-    file_prod = rd.execute()
-    if file_prod == "":
-        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+    # load products from q1
+    prodDict:dict[str, QantuProduct] = loader.downloadProducts(downloadSaleData=True)
+    if not prodDict:
+        print("Fail to downloadProducts.")
+        sys.exit(2)
 
-    #download package data
-    repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
-                  "CANTIDAD (ITEM)", "CATEGORÍA", "PRECIO DE VENTA"]
-    rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
-                          repHeaders, '2024-02-12',
-                          now)
-    file_pack = rd.execute()
-    if file_pack == "":
-        sys.exit("Can't dowloand file[Exportar productos.xlsx]")
+    # load products from q1
+    packDict:dict[str, QantuPackage] = loader.downloadPackages(downloadSaleData=True)
+    if not packDict:
+        print("Fail to downloadPackages.")
+        sys.exit(3)
 
+    
     #download expenses
     repHeaders = ["DESCRIPCIÓN", "CATEGORÍA", "MONTO"]
     rd = ReportDownloader("Exportar gastos.xlsx", "export_payments_expenses",
@@ -185,16 +186,6 @@ def run():
     file_expenses = rd.execute()
     if file_expenses == '':
         sys.exit("Can't dowloand file[Exportar gastos.xlsx]")
-        
-
-    prodSale_df = pandas.read_excel(file_sales, skiprows=5)
-    print("REG SIZE (prod sales):"+str(len(prodSale_df)))
-
-    prod_df = pandas.read_excel(file_prod, skiprows=4)
-    print("REG SIZE (prod):"+str(len(prod_df)))
-
-    pack_df = pandas.read_excel(file_pack, skiprows=4)
-    print("REG SIZE (pack):"+str(len(pack_df)))
 
     exp_df = pandas.read_excel(file_expenses, skiprows=4)
     print("REG SIZE (expenses):"+str(len(exp_df)))
@@ -205,34 +196,8 @@ def run():
     sum_df = pandas.DataFrame([sum_row], columns=exp_df.columns)
     exp_df = pandas.concat([exp_df, sum_df], ignore_index=True)
 
-    # Load products DB
-    for index, row in prod_df.iterrows():
-        prod = getProductDB(row)
-        if prod != None and (not prod.isDisable()) and not prod.isNoUsar():
-            addSaleData(prod, prodSale_df)
-            if prod.getCode() in prodDBDict:
-                raise Exception("Key must be unique")
-            prodDBDict[prod.getCode()]=prod
-
-    # Load products
-    for index, row in prodSale_df.iterrows():
-        prod = getProduct(prod_df, row['CÓDIGO'])
-        if prod != None and (not prod.isDisable()) and not prod.isNoUsar():
-            addSaleData(prod, prodSale_df)
-            if prod.getCode() in prodDict:
-                raise Exception("Key must be unique")
-            prodDict[prod.getCode()]=prod
-            
-    # Load packages
-    for key, row in prodSale_df.iterrows():
-        # only add sales that are products
-        pack = getPackage(pack_df, row['CÓDIGO'], prodDBDict)
-        if pack is not None:
-            pack.setSoldUnits(row['CANTIDAD TOTAL'])
-            packDict[pack.getCode()]=pack
-
-    data, summaryData = createDataList(packDict, prodDict)
-    count = len(data)
+    data, summaryData, summarySegData = createDataList(packDict, prodDict)
+    #count = len(data)
 
     cols = ['COD', 'NOMBRE', 'CATEGORIA', 'COSTO', 'PRECIO', 'VENTAS',
             'TOTAL', 'Mcu', 'Mcu%', 'Mc']
@@ -244,6 +209,13 @@ def run():
     sum_row['CAT'] = 'Total'
     sum_df = pandas.DataFrame([sum_row], columns=out2_df.columns)
     out2_df = pandas.concat([out2_df, sum_df], ignore_index=True)
+    
+    colsSummarySeg = ['CODE', 'CAT', 'VOL VENTAS', 'MC', 'MCR']
+    out3_df = pandas.DataFrame(summarySegData, columns = colsSummarySeg)
+    sum_row = out3_df[['VOL VENTAS', 'MC', 'MCR']].sum()
+    sum_row['CAT'] = 'Total'
+    sum_df = pandas.DataFrame([sum_row], columns=out3_df.columns)
+    out3_df = pandas.concat([out3_df, sum_df], ignore_index=True)
 
     now = datetime.now().strftime("%Y%m%d")
     excel_name = str(business_)+'_Utilidad_'+year+month+'_'+now+'.xlsx'
@@ -251,6 +223,7 @@ def run():
     with pandas.ExcelWriter(excel_name) as excel_writer:
         out_df.to_excel(excel_writer, sheet_name='Utilidad', index=False)
         out2_df.to_excel(excel_writer, sheet_name='Summary', index=False)
+        out3_df.to_excel(excel_writer, sheet_name='Segments', index=False)
         exp_df.to_excel(excel_writer, sheet_name='Expenses', index=False)
 
 

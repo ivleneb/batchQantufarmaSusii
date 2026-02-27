@@ -19,12 +19,21 @@ class SusiiProductLoader:
         self.businessId = businessId
         self.prodSale_df = None
         self.productDict = None
+        self.beginDt = '2023-05-27'
+        today = datetime.now().strftime("%Y-%m-%d")
+        self.endDt = today
         
     def setBusinessId(self, businessId):
         self.businessId = businessId
         
     def getBusinessId(self):
         return self.businessId
+    
+    def setBeginDateSaleData(self, init):
+        self.beginDt = init
+        
+    def setEndDateSaleData(self, end):
+        self.endDt = end
     
     def downloadProducts(self, downloadSaleData:bool=False, backup:bool=False):
         today = datetime.now().strftime("%Y-%m-%d")
@@ -123,13 +132,12 @@ class SusiiProductLoader:
     
     
     def downloadSaleData(self):
-        today = datetime.now().strftime("%Y-%m-%d")
         # download sales per product
         repHeaders = ["CÓDIGO", "NOMBRE", "STOCK ACTUAL",
                       "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
         rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
-                              repHeaders, '2023-05-27',
-                              today, businessId=self.businessId)
+                              repHeaders, self.beginDt,
+                              self.endDt, businessId=self.businessId)
         file_sales = rd.execute()
         if file_sales == "":
             sys.exit("Can't dowloand file[Exportar ventas por producto.xlsx]")
