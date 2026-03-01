@@ -1,0 +1,25 @@
+{
+	"seg_codes":{
+		"DEP"  : "Promoción del Deporte",
+		"RES"  : "Salud Respiratoria",
+		"STR"  : "Control del estrés",
+		"DIG"  : "Salud Digestiva",
+		"REP"  : "Salud Reproductiva",
+		"PER"  : "Aseo Personal",
+		"KID"  : "Salud y cuidado del niño",
+		"BEBE" : "Salud y cuidado del bebé",
+		"ADM"  : "Cuidado del adulto mayor",
+		"CAB"  : "Cuidado del Cabello",
+		"PIEL" : "Cuidado de la piel",
+		"BUC"  : "Salud bucal",
+		"AUX"  : "Primeros Auxilios",
+		"PAR"  : "Eliminación y prevención de parásitos",
+		"SUE"  : "Calidad de sueño",
+		"VUH"  : "Cuidado de las vías urinarias y Aparato reproductor hombre",
+		"VUM"  : "Cuidado de las vías urinarias y Aparato reproductor mujer",
+		"DOL"  : "Tratamiento de dolores crónicos",
+		"PIE"  : "Pie sano",
+		"OJO"  : "Cuidado y malestar de los ojos",
+		"CAC"  : "Cuidado de la salud arterial y cardiaca"
+	}
+}

@@ -5,6 +5,7 @@ from lib.QantuPackage import QantuPackage
 from lib.ReportDownloader import ReportDownloader
 from lib.QantuConfiguration import QantuConfiguration
 from lib.SusiiProductLoader import SusiiProductLoader
+from lib.PropertyLoader import PropertyLoader
 import pandas
 from datetime import datetime
 
@@ -117,24 +118,8 @@ def createDataList(packDict, prodDict):
     for key in summary:
         summaryData.append([key, summary[key][0], summary[key][1], summary[key][2]])
     
-    largeName:dict[str,str]={
-    'DIG' : 'Salud Digestiva',
-    'AUX' : 'Primeros Auxilios',
-    'RES' : 'Salud Respiratoria',
-    'DEP' : 'Promocion del Deporte',
-    'HTA' : 'Cuidado del Hipertenso',
-    'TRB' : 'Salud del Trabajador',
-    'ORT' : 'Salud Ortopedica',
-    'KID' : 'Salud del niño',
-    'STR' : 'Control del estrés',
-    'BEBE' : 'Cuidado del bebé',
-    'FACE' : 'Cuido del rostro',
-    'CAB' : 'Cuidado del Cabello',
-    'PIEL' : 'Cuidado de la piel',
-    'ADM' : 'Cuidado del adulto mayor',
-    'PER' : 'Aseo Personal',
-    'BUC' : 'Salud bucal',
-    'REP' : 'Salud Reproductiva'}
+    
+    largeName:dict[str,str]=PropertyLoader.getSegCodes()
     summarySegData=[]
     for key in summarySeg:
         if key in largeName:
@@ -219,8 +204,9 @@ def run():
 
     now = datetime.now().strftime("%Y%m%d")
     excel_name = str(business_)+'_Utilidad_'+year+month+'_'+now+'.xlsx'
-
-    with pandas.ExcelWriter(excel_name) as excel_writer:
+    path = './out'
+    fullpath = path+'/'+excel_name
+    with pandas.ExcelWriter(fullpath) as excel_writer:
         out_df.to_excel(excel_writer, sheet_name='Utilidad', index=False)
         out2_df.to_excel(excel_writer, sheet_name='Summary', index=False)
         out3_df.to_excel(excel_writer, sheet_name='Segments', index=False)
