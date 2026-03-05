@@ -12,13 +12,45 @@ from lib.ReportDownloader import ReportDownloader
 
 class CommissionManager:
     
-    def __init__(self):
+    def __init__(self, amt=None):
         self.categoriesEnabled={'QANTUFARMA.RUTH (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                        'QANTUFARMA.JENNY (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                        'QANTUFARMA.MIRIAM (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                        'QANTUFARMA.ROSANGELA2 (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS']
                        }
+        
         self.prodDBDict = {}
+        if amt is not None:
+            self.commission = self.getCommissionPer(amt)
+        else:
+            self.commission = 0.0
+        
+        print("Commision percent is:"+str(self.commission))
+            
+    def getCommissionPer(self, amount):
+        rang:dict[int, float] = {8000	: 0.03,
+                                8500	: 0.04,
+                                9000	: 0.05,
+                                9500	: 0.06,
+                                10000	: 0.07,
+                                10500	: 0.08,
+                                11000	: 0.09,
+                                11500	: 0.10,
+                                12000	: 0.11
+                }
+        ls = list(rang.keys())
+        commission = 0.0
+        for index in range(len(ls)-1):
+            if amount<ls[0]:
+                break
+            elif amount>=ls[index] and amount<ls[index+1]:
+                key = ls[index]
+                commission = rang[key]
+                break
+            elif amount>=ls[len(ls)-1]:
+                commission = rang[len(ls)-1]
+                break
+        return commission
 
     def getProductDB(self, row):
         return QantuProduct(row['CÓDIGO'], row['NOMBRE'], row['CANTIDAD'],
@@ -62,8 +94,8 @@ class CommissionManager:
             return QantuSuplement(row['CÓDIGO'], row['NOMBRE'],
                                   row['PRECIO DE VENTA'], row['PRECIO DE COMPRA'])
         else:
-            return QantuGeneral(code=row['CÓDIGO'], name=row['NOMBRE'], category=row['CATEGORÍA'],
-                                price=row['PRECIO DE VENTA'], cost=row['PRECIO DE COMPRA'])
+            return QantuProduct(code=row['CÓDIGO'], name=row['NOMBRE'], category=row['CATEGORÍA'],
+                                price=row['PRECIO DE VENTA'], cost=row['PRECIO DE COMPRA'], commPer=self.commission)
 
 
     def getPackage(self, pack_df, code):

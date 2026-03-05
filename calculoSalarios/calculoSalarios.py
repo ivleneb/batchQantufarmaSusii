@@ -108,14 +108,14 @@ def run():
         }
 
     horasQ2 = {
-        "XIOMARA": 21,
-        "YOVANA": 28
+        "XIOMARA": 0,
+        "YOVANA": 49
         }
 
 
     # calculo comisiones
-    comm = CommissionManager()
-    sellersCommDict = comm.run('2026', '01')
+    comm = CommissionManager(11364.64)
+    sellersCommDict = comm.run('2026', '02')
     if sellersCommDict is None:
         print("Fallo commissionManager")
         sys.exit(1)
@@ -137,7 +137,7 @@ def run():
     for user in horasQ1:
         salario = round(weekHoursBasedSalary(horasQ1[user], salarioBase, horasSemanalesBase),2)
         print(user+" "+str(salario))
-        users[user].append(['monto fijo', 'Q1 1era quincena', salario])
+        users[user].append(['monto fijo', 'Q1 mes', salario])
 
     #for user in horasQ1_2:
     #    salario = round(weekHoursBasedSalary(horasQ1_2[user], salarioBase, horasSemanalesBase),2)*0.5
@@ -157,12 +157,15 @@ def run():
     #users['RUTH'].append(['feriado', 'Q1 28/jul', 70.0])
 
     print("Pérdidas por Ajustes")
-    lossAdjust = round(-6.45-1.3,2)
+    lossAdjust = round(-3-0.8-8.6,2)
     users['JENNY'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
     users['RUTH'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
     
     print("Pérdidas por caja chica")
-    users['RUTH'].append(['perdidas por caja chica', 'Q1 01-enero', -2.36])
+    #users['RUTH'].append(['perdidas por caja chica', 'Q1 01-enero', -2.36])
+    
+    print("Perdidas por tardanza")
+    users['JENNY'].append(['perdidas por tardanza', 'Q1 01-enero al 31-enero', round(salarioOperativoDiarioQ1/13)])
     
     #print("Pérdidas por Productos vencidos")
     #lossExpired = -32.13
@@ -175,7 +178,7 @@ def run():
         users[user].append(['Comisiones ventas', 'Q1 01-enero al 31-enero', getCommission(user, sellersCommDict)])
 
     print("Adelantos")
-    users['RUTH'].append(['adelanto', 'Q1 quincena', round(-1000.00,2)])
+    users['RUTH'].append(['adelanto', 'Q1 quincena', round(-600.00,2)])
     users['JENNY'].append(['adelanto', 'Q1 quincena', round(-600.00,2)])
 
     #bon = sellerPlusPlusBonification(JENNYSalesB, JENNYSales)
@@ -204,7 +207,18 @@ def run():
         print(user+" "+str(salario))
         users[user].append(['monto fijo', 'Q2', salario])
 
-
+    print("Inasistencias")
+    cobertura_morning = round(6*salarioOperativoDiarioQ2/7,2)
+    users['YOVANA'].append(['cobertura mañana', 'Q2 01/mar', cobertura_morning])
+    users['XIOMARA'].append(['cobertura mañana', 'Q2 02/mar', cobertura_morning])
+    users['XIOMARA'].append(['cobertura mañana y tarde', 'Q2 03/mar', cobertura_morning+salarioOperativoDiarioQ2])
+    users['YOVANA'].append(['descanso', 'Q2 03/mar', -salarioOperativoDiarioQ2])
+    users['XIOMARA'].append(['cobertura mañana', 'Q2 04/mar', cobertura_morning])
+    users['XIOMARA'].append(['cobertura mañana', 'Q2 05/mar', cobertura_morning])
+    users['XIOMARA'].append(['cobertura mañana', 'Q2 06/mar', cobertura_morning])
+    #users['miriam'].append(['cobertura full day', 'Q1 22/oct', salarioOperativoDiarioQ1_2])
+    #users['RUTH'].append(['inasistencia full day', 'Q1 23/oct', -salarioOperativoDiarioQ1_2])
+    
     #print("Ajustes")
     #print("Angela inasistencia")
     #salarioQ2RosangelaXdia = round(users['rosangela'][0][2]/standardWeeks,2)
@@ -228,14 +242,14 @@ def run():
 
 
     print("Pérdidas por Ajustes")
-    lossAdjust = round(-5-0.3,2)
-    users['XIOMARA'].append(['perdidas por ajuste', 'Q2 01-enero al 31-enero', round(lossAdjust,2)])
-    users['YOVANA'].append(['perdidas por ajuste', 'Q2 01-enero al 31-enero', round(lossAdjust,2)])
+    #lossAdjust = round(-5-0.3,2)
+    #users['XIOMARA'].append(['perdidas por ajuste', 'Q2 01-enero al 31-enero', round(lossAdjust,2)])
+    #users['YOVANA'].append(['perdidas por ajuste', 'Q2 01-enero al 31-enero', round(lossAdjust,2)])
     #users['rosangela'].append(['perdidas por ajuste', 'Q2 01-noviembre al 29-noviembre', round(lossAdjust,2)])
 
     print("Adelantos")
     users['YOVANA'].append(['adelanto', 'Q2 quincena', round(-350.00,2)])
-    users['XIOMARA'].append(['adelanto', 'Q2 quincena', round(-500.00,2)])
+    #users['XIOMARA'].append(['adelanto', 'Q2 quincena', round(-500.00,2)])
     #users['rosangela'].append(['adelanto', 'Q2 quincena', round(-200.00,2)])
 
 
