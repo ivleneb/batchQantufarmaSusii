@@ -17,10 +17,24 @@ pass_ = config.pass_
 uri_ = config.uri_
 
 class RequestHandler:
-    def __init__(self, uri, payload=None):
+    def __init__(self, uri, payload=None, businessId=None):
         self.uri = uri
         self.payload = payload
+        if businessId is not None:
+            self.user_ = config.getUserForBusiness(businessId)
+            self.pass_ = config.getPasswordForBusiness(businessId)
+        else:
+            self.user_ = user_
+            self.pass_ = pass_
         
+    def setBusinessId(self, businessId):
+        self.businessId = businessId
+        self.user_ = config.getUserForBusiness(businessId)
+        self.pass_ = config.getPasswordForBusiness(businessId)
+        
+    def getBusinessId(self):
+        return self.businessId
+    
     def execute(self):
         self.login()
         if self.payload != None:
@@ -32,8 +46,8 @@ class RequestHandler:
     def login(self):
         url = uri_+'/auth/login/'
         payload = {
-            'username': user_,
-            'password': pass_
+            'username': self.user_,
+            'password': self.pass_
         }
 
         r = requests.post(url, json=payload)

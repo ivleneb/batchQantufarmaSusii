@@ -89,8 +89,33 @@ def getCommission(user:str, sellers):
         
     return 0.0
 
+def getPeriod():
+    while True:
+        year = input("Enter year YYYY: ")
+        month = input("Enter month mm: ")
+        
+        if year.isdigit() and month.isdigit():
+            monthNum = int(month)
+            if monthNum > 12 or monthNum<1:
+                print("Valor inválido de month ["+month+"].")
+                continue
+            else:
+                return year, month
+        else:
+            print("Valor no numérico en periodo ["+year+"]["+month+"].")
+            continue
 
 def run():
+    
+    year, month = getPeriod()
+    
+    # calculo comisiones Q1
+    comm = CommissionManager(5053)
+    sellersCommDict = comm.run(year, month)
+    if sellersCommDict is None:
+        print("Fallo commissionManager")
+        sys.exit(1)
+    
     users: dict[str, list] = {"RUTH":[],"JENNY":[],"miriam":[], "XIOMARA":[],"YOVANA":[], "rosangela":[]}
 
     # dias laborables en un mes
@@ -111,15 +136,6 @@ def run():
         "XIOMARA": 0,
         "YOVANA": 49
         }
-
-
-    # calculo comisiones
-    comm = CommissionManager(11364.64)
-    sellersCommDict = comm.run('2026', '02')
-    if sellersCommDict is None:
-        print("Fallo commissionManager")
-        sys.exit(1)
-
 
     # Q1
     print("Q1--------------------------")
@@ -265,12 +281,16 @@ def run():
         user_df.loc[len(user_df)] = footerData
         
         excel_name = user+'_ReporteSalario_'+now+'.xlsx'
-        with pandas.ExcelWriter(excel_name) as excel_writer:
+        path = './out'
+        fullpath = path + '/' +excel_name
+        with pandas.ExcelWriter(fullpath) as excel_writer:
             user_df.to_excel(excel_writer, sheet_name='Resumen', index=False)
 
         
         pdf_name = user+'_ReporteSalario_'+now+'.pdf'
-        dataframe_to_pdf(headers, footerData, users[user], pdf_name)
+        path = './out'
+        fullpath_pdf = path + '/' + pdf_name
+        dataframe_to_pdf(headers, footerData, users[user], fullpath_pdf)
 
             
     print("------------------------  END ---------------------------")

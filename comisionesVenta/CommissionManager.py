@@ -7,12 +7,13 @@ from lib.QantuSeller import QantuSeller
 from lib.QantuSuplement import QantuSuplement
 from lib.QantuGeneral import QantuGeneral
 from lib.QantuPackage import QantuPackage
+from lib.RequestHandler import RequestHandler
 
 from lib.ReportDownloader import ReportDownloader
 
 class CommissionManager:
     
-    def __init__(self, amt=None):
+    def __init__(self, businessId=None):
         self.categoriesEnabled={'QANTUFARMA.RUTH (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                        'QANTUFARMA.JENNY (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                        'QANTUFARMA.MIRIAM (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
@@ -20,13 +21,8 @@ class CommissionManager:
                        }
         
         self.prodDBDict = {}
-        if amt is not None:
-            self.commission = self.getCommissionPer(amt)
-        else:
-            self.commission = 0.0
+        self.businessId = businessId
         
-        print("Commision percent is:"+str(self.commission))
-            
     def getCommissionPer(self, amount):
         rang:dict[int, float] = {8000	: 0.03,
                                 8500	: 0.04,
@@ -183,6 +179,19 @@ class CommissionManager:
            
         return seller_dc
 
+    def retrievePeriodTotalSales(self, beginDt, endDt):
+        uri = "/stats/sales-statistics/?date__gte="+beginDt+"T05:00:00.000Z&date__lte="+endDt+"T04:59:59.999Z&page=1&business="+str(self.businessId)+"&time_unit=day"
+        print(uri)
+        rd = RequestHandler(uri)
+        res = rd.execute()
+
+        if res != None:
+            return res['data']['total']
+        else:
+            print("Fail retrievePeriodTotalSales")
+            sys.exit(1)
+        
+        
     def run(self, year:str, month:str):
         # Enter period
         if len(year)==0 or len(month)==0:
@@ -200,25 +209,30 @@ class CommissionManager:
         endMonth = "{:02d}".format(endMonthNum)
         endDt = year+"-"+endMonth+"-01"
 
+        # compute commission percentage from amaount of sales in the month
+        amt = self.retrievePeriodTotalSales(beginDt, endDt)    
+        self.commission = self.getCommissionPer(amt)
+        print("Commision percent is:"+str(self.commission))
+
         repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
                       "creado (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
 
         rd = ReportDownloader("Exportar productos.xlsx", "export_products",
-                              repHeaders, beginDt, endDt)
+                              repHeaders, beginDt, endDt, businessId=self.businessId)
         file1 = rd.execute()
 
         repHeaders = ["CÓDIGO", "NOMBRE", "DISABLE (PRODUCTO - EXTRA)",
                       "QANTUFARMA.JENNY (USUARIO)", "QANTUFARMA.RUTH (USUARIO)",
                       "QANTUFARMA.MIRIAM (USUARIO)", "QANTUFARMA.ROSANGELA2 (USUARIO)", "CANTIDAD TOTAL"]
         rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
-                              repHeaders, beginDt, endDt)
+                              repHeaders, beginDt, endDt, businessId=self.businessId)
         file2 = rd.execute()
 
         #download package data
         repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
                       "CANTIDAD (ITEM)", "CATEGORÍA", "PRECIO DE VENTA", "ÚLTIMO PRECIO DE COMPRA"]
         rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
-                              repHeaders, beginDt, endDt)
+                              repHeaders, beginDt, endDt, businessId=self.businessId)
         file3 = rd.execute()
 
         if file1=='' or file2=='' or file3=='':
