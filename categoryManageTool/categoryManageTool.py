@@ -200,12 +200,29 @@ def run():
     sum_df = pandas.DataFrame([sum_row], columns=out2_df.columns)
     out2_df = pandas.concat([out2_df, sum_df], ignore_index=True)
     
+    total_ventas = out2_df.iloc[-1]['VOL VENTAS']
+    total_mc = out2_df.iloc[-1]['MC']
+
+    # Calcular los porcentajes (excepto para la última fila)
+    out2_df['%Ventas'] = (out2_df['VOL VENTAS'] / total_ventas * 100).round(2)
+    out2_df['%Margen'] = (out2_df['MC'] / total_mc * 100).round(2)
+    
+    
     colsSummarySeg = ['CODE', 'CAT', 'VOL VENTAS', 'MC', 'MCR']
     out3_df = pandas.DataFrame(summarySegData, columns = colsSummarySeg)
+    # calcular totales
     sum_row = out3_df[['VOL VENTAS', 'MC', 'MCR']].sum()
     sum_row['CAT'] = 'Total'
     sum_df = pandas.DataFrame([sum_row], columns=out3_df.columns)
     out3_df = pandas.concat([out3_df, sum_df], ignore_index=True)
+    # Obtener los totales de la última fila
+    total_ventas = out3_df.iloc[-1]['VOL VENTAS']
+    total_mc = out3_df.iloc[-1]['MC']
+
+    # Calcular los porcentajes (excepto para la última fila)
+    out3_df['%Ventas'] = (out3_df['VOL VENTAS'] / total_ventas * 100).round(2)
+    out3_df['%Margen'] = (out3_df['MC'] / total_mc * 100).round(2)
+    
 
     now = datetime.now().strftime("%Y%m%d")
     excel_name = str(business_)+'_Utilidad_'+beginDt+'to'+endDt+'_'+now+'.xlsx'
