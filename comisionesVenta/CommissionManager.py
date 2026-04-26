@@ -44,14 +44,16 @@ class CommissionManager:
                 commission = rang[key]
                 break
             elif amount>=ls[len(ls)-1]:
-                commission = rang[len(ls)-1]
+                commission = rang[ls[len(ls)-1]]
                 break
         return commission
 
     def getProductDB(self, row):
-        return QantuProduct(row['CÓDIGO'], row['NOMBRE'], row['CANTIDAD'],
+        qp = QantuProduct(row['CÓDIGO'], row['NOMBRE'], row['CANTIDAD'],
                                 row['disable (EXTRA)'], row['CATEGORÍA'], row['creado (EXTRA)'], row['STOCK MÍNIMO'],
                                  row['PRECIO DE VENTA'], row['PRECIO DE COMPRA'])
+        qp.setTipoTratamiento(row['tipo_tratamiento (EXTRA)'])
+        return qp
 
     def addSaleData(self, prod, sale_df):
         sub_df = sale_df.loc[sale_df['CÓDIGO'] == prod.getCode()]
@@ -87,12 +89,15 @@ class CommissionManager:
 
     def getProduct(self, row):
         if row["CATEGORÍA"]=='SUPLEMENTOS':
-            return QantuSuplement(row['CÓDIGO'], row['NOMBRE'],
+            qp = QantuSuplement(row['CÓDIGO'], row['NOMBRE'],
                                   row['PRECIO DE VENTA'], row['PRECIO DE COMPRA'])
+            qp.setTipoTratamiento(row['tipo_tratamiento (EXTRA)'])
+            return qp
         else:
-            return QantuProduct(code=row['CÓDIGO'], name=row['NOMBRE'], category=row['CATEGORÍA'],
+            qp = QantuProduct(code=row['CÓDIGO'], name=row['NOMBRE'], category=row['CATEGORÍA'],
                                 price=row['PRECIO DE VENTA'], cost=row['PRECIO DE COMPRA'], commPer=self.commission)
-
+            qp.setTipoTratamiento(row['tipo_tratamiento (EXTRA)'])
+            return qp
 
     def getPackage(self, pack_df, code):
         sub_df = pack_df.loc[pack_df['CÓDIGO'] == code]
@@ -149,6 +154,8 @@ class CommissionManager:
                     # add net commission each user
                     for name, seller in seller_dc.items():
                         if prod.getCategory() not in self.categoriesEnabled[name]:
+                            continue
+                        if prod.getTipoTratamiento()==1:
                             continue
                         nbrSales=sale[name]
                         # Exclude NaN values
@@ -215,7 +222,7 @@ class CommissionManager:
         print("Commision percent is:"+str(self.commission))
 
         repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
-                      "creado (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
+                      "creado (EXTRA)", "tipo_tratamiento (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
 
         rd = ReportDownloader("Exportar productos.xlsx", "export_products",
                               repHeaders, beginDt, endDt, businessId=self.businessId)

@@ -45,6 +45,7 @@ class QantuProduct:
         self.unitsCaja = 0
         self.alias = alias
         self.unidad = unidad
+        #self.tipoTratamiento = None
     
     def merge(self, prod):
         if self.mergedName == self.name:
