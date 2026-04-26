@@ -1,6 +1,7 @@
 import pandas
 from datetime import datetime
 from pathlib import Path
+import sys
 from models.WarehouseMovementFactory import WarehouseMovementFactory
 
 class WarehouseMovementReport():
@@ -85,7 +86,11 @@ class WarehouseMovementReport():
                 if mov2.isMatched():
                     continue
                 print("nbr1="+str(nbr1)+" val2="+mov2.getNbrCross())
-                if nbr1==int(mov2.getNbrCross()):
+                mov2_crossNbr = WarehouseMovementReport.convert2Int(mov2.getNbrCross())
+                if mov2_crossNbr is None:
+                    print("Movement "+str(mov2.getNumber())+" has invalid cross number "+mov2.getNbrCross())
+                    sys.exit(1)
+                elif nbr1==mov2_crossNbr:
                     print("Set matched move")
                     mov1.setMatchedMove(mov2)
                     mov2.setMatchedMove(mov1)
@@ -103,3 +108,12 @@ class WarehouseMovementReport():
                 print("Movement NOT matched:"+str(mov1.getNumber()))
                 ls+=mov1.getData()
         return ls
+    
+    @staticmethod
+    def convert2Int(strNbr):
+        try:
+            num = int(strNbr)
+            return num
+        except ValueError:
+            print(f"Error: '{strNbr}' no es un número entero válido")
+            return None
