@@ -270,8 +270,10 @@ def run():
 
     now = datetime.now().strftime("%Y%m%d_%H%M")
     excel_name = str(business_)+'_ListaPedidos_'+now+'.xlsx'
-
-    with pandas.ExcelWriter(excel_name) as excel_writer:
+    out_path = './out'
+    fullpath = out_path+'/'+excel_name
+    
+    with pandas.ExcelWriter(fullpath) as excel_writer:
         out_df.to_excel(excel_writer, sheet_name='Productos', index=False)
         #outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
         #outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)

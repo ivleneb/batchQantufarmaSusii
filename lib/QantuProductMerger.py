@@ -85,7 +85,7 @@ class QantuProductMerger:
                     if prod2.valBrand()==2:
                         continue
                     
-                    if prod.getPrincipioActivo()!="" and (prod.getPrincipioActivo() == prod2.getPrincipioActivo()):
+                    if (prod.getPrincipioActivo()=="" and prod.getFormula()==prod2.getFormula()) or (prod.getPrincipioActivo()!="" and (prod.getPrincipioActivo() == prod2.getPrincipioActivo())):
                         if cc == prod2.getConcentration():
                             if ff == prod2.getFFSimple():
                                 if qq == prod2.getCantidad():
