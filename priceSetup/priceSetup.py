@@ -134,8 +134,12 @@ def createDataListToImport(prodDict):
             continue
         else:
             prod.setPrice(presug)
-            prod.setPorcentajeDeGanancia(gan_per*100)
-            
+            # susii doesn't allow gain percentage greater than 1000
+            if gan_per*100 < 1000:
+                prod.setPorcentajeDeGanancia(gan_per*100)
+            else:
+                prod.setPorcentajeDeGanancia('')
+
         if presug < 0.5:
             prod.setPrice(0.5)
             prod.setPorcentajeDeGanancia('')
