@@ -7,6 +7,7 @@ from datetime import datetime
 from lib.SusiiProductLoader import SusiiProductLoader
 import json
 import pandas
+import os
 
 otherBusiness = 8132
 lazaro = 8132
@@ -23,12 +24,23 @@ else:
     print("FATAL invalid business "+str(business_))
     sys.exit(1)
 
+def crear_carpeta_si_no_existe(ruta):
+    """Crea una carpeta si no existe"""
+    if not os.path.exists(ruta):
+        os.makedirs(ruta)
+        print(f"Carpeta creada: {ruta}")
+    else:
+        print(f"La carpeta ya existe: {ruta}")
+
 def generateReport(moveList):
     cols3 = [ "CÓDIGO", "NOMBRE", "CANTIDAD"]
     move_df = pandas.DataFrame(moveList, columns = cols3)
     now = datetime.now().strftime("%Y%m%d")
     excel_name = str(business_)+'_ToMoveFrom'+str(otherBusiness)+'_'+now+'.xlsx'
-    with pandas.ExcelWriter(excel_name) as excel_writer:
+    out_path = './out'
+    crear_carpeta_si_no_existe(out_path)
+    fullpath = out_path+'/'+excel_name
+    with pandas.ExcelWriter(fullpath) as excel_writer:
         move_df.to_excel(excel_writer, index=False)
 
 def run():
