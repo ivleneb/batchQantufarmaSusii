@@ -187,7 +187,7 @@ def run():
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a MEDICAMENTOS", regSan])
             elif prod.getCategory()=='GALENICOS' and not (xy in ('GN', 'GE')):
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a GALENICOS", regSan])
-            elif prod.getCategory()!='SUPLEMENTOS' and  not (xy in ('DN', 'DE') or xyz in ('EDN', 'EDE', 'MHN', 'MHE')):
+            elif prod.getCategory()=='SUPLEMENTOS' and  not (xy in ('DN', 'DE') or xyz in ('EDN', 'EDE', 'MHN', 'MHE')):
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a SUPLEMENTOS", regSan])
                 
         creat = prod.getCreatedAt()
