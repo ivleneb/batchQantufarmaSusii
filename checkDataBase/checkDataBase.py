@@ -168,9 +168,7 @@ def run():
             errorList.append([prodCode, name, "NUM REG SAN", "Valor vacío", regSan])
         else:
             xy = regSan[0:2]
-            print("xy:"+xy)
             xyz = regSan[0:3]
-            print("xyz:"+xyz)
             if xy in ('GN', 'GE') and prod.getCategory()!='GALENICOS':
                 errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como GALENICOS", regSan])
             elif xy in ('BE', 'BN') and prod.getCategory()!='BIOLOGICO':
