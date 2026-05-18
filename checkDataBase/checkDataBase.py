@@ -6,6 +6,7 @@ from datetime import datetime
 from lib.SusiiProductLoader import SusiiProductLoader
 import pandas
 import numpy as np
+from lib.BatchUtils import BatchUtils
 
 # load configuration
 config = QantuConfiguration()
@@ -21,7 +22,10 @@ def generateReportFile(errorList):
     report_df = pandas.DataFrame(errorList, columns = cols2)
     now = datetime.now().strftime("%Y%m%d")
     excel_name = str(business_)+'_Errores_'+now+'.xlsx'
-    with pandas.ExcelWriter(excel_name) as excel_writer:
+    out_path = './out'
+    BatchUtils.crear_carpeta_si_no_existe(out_path)
+    fullpath = out_path+'/'+excel_name
+    with pandas.ExcelWriter(fullpath) as excel_writer:
         report_df.to_excel(excel_writer, index=False)
 
 def isVoid(value):
@@ -100,7 +104,7 @@ def run():
             errorList.append([prodCode, name, "PRICE LOGIC", 
             "Valor inválido ["+",".join(map(str,validVals))+"]", pLogic])
         
-        if prod.getCategory()=='MEDICAMENTOS':
+        if cat=='MEDICAMENTOS':
             
             tt = prod.getTipoTratamiento()
             if isVoid(tt):
@@ -162,14 +166,40 @@ def run():
         regSan = prod.getNumRegSan()
         if isVoid(regSan):
             errorList.append([prodCode, name, "NUM REG SAN", "Valor vacío", regSan])
-        
+        else:
+            xy = regSan[0:2]
+            print("xy:"+xy)
+            xyz = regSan[0:3]
+            print("xyz:"+xyz)
+            if xy in ('GN', 'GE') and prod.getCategory()!='GALENICOS':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como GALENICOS", regSan])
+            elif xy in ('BE', 'BN') and prod.getCategory()!='BIOLOGICO':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como BIOLOGICO", regSan])
+            elif (xy in ('DN', 'DE') or xyz in ('EDN', 'EDE', 'MHN', 'MHE')) and prod.getCategory()!='SUPLEMENTOS':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como SUPLEMENTOS", regSan])
+            elif xyz in ('GMN', 'GME') and prod.getCategory()!='GAS MEDICINAL':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como GAS MEDICINAL", regSan])
+            elif xy in ('RN', 'RE') and prod.getCategory()!='RADIOFARMACO':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como RADIOFARMACO", regSan])
+            elif xyz in ('ADE', 'ADN') and prod.getCategory()!='AGENTE DE DIAGNOSTICO':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como AGENTE DE DIAGNOSTICO", regSan])
+            elif xy in ('EE', 'EN') and prod.getCategory()!='MEDICAMENTOS':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como MEDICAMENTOS", regSan])
+            elif prod.getCategory()=='MEDICAMENTOS' and not (xy in ('EE', 'EN')):
+                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a MEDICAMENTOS", regSan])
+            elif prod.getCategory()=='GALENICOS' and not (xy in ('GN', 'GE')):
+                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a GALENICOS", regSan])
+            elif prod.getCategory()!='SUPLEMENTOS' and  not (xy in ('DN', 'DE') or xyz in ('EDN', 'EDE', 'MHN', 'MHE')):
+                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a SUPLEMENTOS", regSan])
+                
         creat = prod.getCreatedAt()
         if isVoid(creat):
             errorList.append([prodCode, name, "CREATED AT", "Valor vacío", creat])
         if not validDate(creat):
             errorList.append([prodCode, name, "CREATED AT", 
-            "Valor inválido", creat])
-    
+            "Valor inválido", creat])        
+                    
+        
     generateReportFile(errorList)
 
 run()
