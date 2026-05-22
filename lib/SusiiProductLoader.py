@@ -25,6 +25,8 @@ class SusiiProductLoader:
         
     def setBusinessId(self, businessId):
         self.businessId = businessId
+        self.prodSale_df = None
+        self.productDict = None
         
     def getBusinessId(self):
         return self.businessId
@@ -135,8 +137,16 @@ class SusiiProductLoader:
         # download sales per product
         repHeaders = ["CÓDIGO", "NOMBRE", "STOCK ACTUAL",
                       "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
+        
+        beginDt = self.beginDt
+        if self.businessId==8132:
+            beginDt = '2026-04-06'
+        
+        print("Default begin date for '"+str(self.businessId)+"' is "+beginDt)
+            
+            
         rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
-                              repHeaders, self.beginDt,
+                              repHeaders, beginDt,
                               self.endDt, businessId=self.businessId)
         file_sales = rd.execute()
         if file_sales == "":
