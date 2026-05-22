@@ -8,7 +8,7 @@ from lib.QantuPackage import QantuPackage
 from lib.QantuProduct import QantuProduct
 from lib.ReportDownloader import ReportDownloader
 import pandas
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import numpy as np
 import shutil
@@ -20,8 +20,9 @@ class SusiiProductLoader:
         self.prodSale_df = None
         self.productDict = None
         self.beginDt = '2023-05-27'
-        today = datetime.now().strftime("%Y-%m-%d")
-        self.endDt = today
+        todayDt = datetime.now().date()
+        tommorrow = todayDt + timedelta(days=1)
+        self.endDt = tommorrow.strftime("%Y-%m-%d")
         
     def setBusinessId(self, businessId):
         self.businessId = businessId
