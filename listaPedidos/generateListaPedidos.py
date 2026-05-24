@@ -269,7 +269,7 @@ def run():
     out_df = pandas.DataFrame(dataOut, columns = cols)
 
     now = datetime.now().strftime("%Y%m%d_%H%M")
-    excel_name = str(business_)+'_ListaPedidos_'+now+'.xlsx'
+    excel_name = str(business_)+'_Pedido_'+now+'.xlsx'
     out_path = './out'
     fullpath = out_path+'/'+excel_name
     
