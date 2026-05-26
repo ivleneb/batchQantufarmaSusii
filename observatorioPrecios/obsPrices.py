@@ -39,7 +39,7 @@ def run():
     if business_ == 5053:
         code = '0112946'
     elif business_ == 8132:
-        code = '0124186'
+        code = '0128492'
 
     now = datetime.now().strftime("%Y-%m-%d")
     # download product data
