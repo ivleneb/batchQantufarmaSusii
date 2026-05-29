@@ -9,6 +9,7 @@ import numpy as np
 from lib.BatchUtils import BatchUtils
 from lib.PropertyLoader import PropertyLoader
 from lib.QantuClassifier import QantuClassifier
+from typing import Union, List
 
 # load configuration
 config = QantuConfiguration()
@@ -36,7 +37,7 @@ def isVoid(value):
     else:
         return False
 
-def invalidValue(value, ls):
+def invalidValue(value, ls:Union[List[int], List[str]]):
     if value in ls:
         return False
     else:
@@ -62,9 +63,9 @@ def validDate(dt):
     
     try:
         if dt.count("/")==2:
-            date = datetime.strptime(dt, "%Y/%m/%d")
+            datetime.strptime(dt, "%Y/%m/%d")
         else:
-            date= datetime.strptime(dt+"/01", "%Y/%m/%d")
+            datetime.strptime(dt+"/01", "%Y/%m/%d")
             
         return True
     except ValueError:
@@ -130,10 +131,10 @@ def run():
             otc = prod.getOtc()
             #if isVoid(otc):
             #    errorList.append([prodCode, name, "OTC", "Valor vacío", otc])
-            validVals = ['Y', 'N']
-            if not isVoid(otc) and invalidValue(otc, validVals):
+            validVals2 = ['Y', 'N']
+            if not isVoid(otc) and invalidValue(otc, validVals2):
                 errorList.append([prodCode, name, "OTC", 
-                "Valor inválido ["+",".join(validVals)+"]", otc])
+                "Valor inválido ["+",".join(validVals2)+"]", otc])
             
             gen = prod.getGenerico()
             #if isVoid(gen):
