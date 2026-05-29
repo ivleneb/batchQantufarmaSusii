@@ -21,5 +21,33 @@
 		"PIE"  : "Pie sano",
 		"OJO"  : "Cuidado y malestar de los ojos",
 		"CAC"  : "Cuidado de la salud arterial y cardiaca"
+	},
+	"reg_dig_codes":{
+		"EE":"Especialidad farmaceutica extranjera",
+		"EN":"Especialidad farmaceutica nacional",
+		"GN":"Producto galenico nacional",
+		"GE":"Producto galenico extranjero",
+		"BE":"Producto biologico extranjero",
+		"BN":"Producto biologico nacional",
+		"DN":"Producto dietetico nacional",
+		"DE":"Producto dietetico extranjero",
+		"EDN":"Edulcorante nacional",
+		"EDE":"Edulcorante extranjero",
+		"MHN":"Medicamento herbolario nacional",
+		"MHE":"Medicamento herbolario extranjero",
+		"GMN":"Gas medicinal nacional",
+		"GME":"Gas medicinal extranjero",
+		"RN":"Radiofarmaco nacional",
+		"RE":"Radiofarmaco extranjero",
+		"ADE":"Agente de diagnostico extranjero",
+		"ADN":"Agente de diagnostico nacional",
+		"PNE":"Producto nacional extranjero",
+		"PNN":"Producto natural nacional"
+	},
+	"reg_code_category":{
+		"MEDICAMENTOS":["EE", "EN", "BN", "BE", "PNN", "PNE"],
+		"GALENICOS":["GN", "GE"],
+		"SUPLEMENTOS":["DN", "DE", "MHN", "MHE", "EDN", "EDE"],
+		"PRODMEDNOCAT":["RN", "RE", "ADN", "ADE", "GMN", "GME"]
 	}
 }

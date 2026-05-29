@@ -8,6 +8,7 @@ import pandas
 import numpy as np
 from lib.BatchUtils import BatchUtils
 from lib.PropertyLoader import PropertyLoader
+from lib.QantuClassifier import QantuClassifier
 
 # load configuration
 config = QantuConfiguration()
@@ -93,6 +94,17 @@ def run():
         if isVoid(cat):
             errorList.append([prodCode, name, "CATEGORY", "Valor vacío", cat])
         
+        
+        numProps = len(name.split())
+        if cat=='MEDICAMENTOS' and numProps!=6:
+            errorList.append([prodCode, name, "NAME", "Longitud de caracteristicas invalida MEDICAMENTOS, debe ser 6", ''])
+        elif cat=='GALENICOS' and not numProps in [4,5]:
+            errorList.append([prodCode, name, "NAME", "Longitud de caracteristicas invalida GALENICOS, debe ser 4 o 5", ''])
+        elif cat=='DISPOSITIVOS MEDICOS' and numProps != 4:
+            errorList.append([prodCode, name, "NAME", "Longitud de caracteristicas invalida DISPOSITIVOS, debe ser 4", ''])
+        elif not cat in ('MEDICAMENTOS','GALENICOS','DISPOSITIVOS MEDICOS') and numProps != 4:
+            errorList.append([prodCode, name, "NAME", "Longitud de caracteristicas invalida GENERAL, debe ser 4", ''])
+        
         lab = prod.getBrand()
         if isVoid(cat):
             errorList.append([prodCode, name, "LAB", "Valor vacío", lab])
@@ -148,10 +160,6 @@ def run():
         if not isNumeric(uCaj):
             errorList.append([prodCode, name, "UNITS CAJA", 
             "Valor inválido [entero]", uCaj])
-        
-        #prod.getSeg1()
-        #prod.getSeg2()
-        #prod.getSeg3()
             
         vto = prod.getFechaVto()
         if isVoid(vto):
@@ -168,28 +176,28 @@ def run():
         if isVoid(regSan):
             errorList.append([prodCode, name, "NUM REG SAN", "Valor vacío", regSan])
         else:
-            xy = regSan[0:2]
-            xyz = regSan[0:3]
-            if xy in ('GN', 'GE') and prod.getCategory()!='GALENICOS':
-                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como GALENICOS", regSan])
-            elif xy in ('BE', 'BN') and prod.getCategory()!='BIOLOGICO':
-                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como BIOLOGICO", regSan])
-            elif (xy in ('DN', 'DE') or xyz in ('EDN', 'EDE', 'MHN', 'MHE')) and prod.getCategory()!='SUPLEMENTOS':
-                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como SUPLEMENTOS", regSan])
-            elif xyz in ('GMN', 'GME') and prod.getCategory()!='GAS MEDICINAL':
-                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como GAS MEDICINAL", regSan])
-            elif xy in ('RN', 'RE') and prod.getCategory()!='RADIOFARMACO':
-                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como RADIOFARMACO", regSan])
-            elif xyz in ('ADE', 'ADN') and prod.getCategory()!='AGENTE DE DIAGNOSTICO':
-                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como AGENTE DE DIAGNOSTICO", regSan])
-            elif xy in ('EE', 'EN') and prod.getCategory()!='MEDICAMENTOS':
-                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como MEDICAMENTOS", regSan])
-            elif prod.getCategory()=='MEDICAMENTOS' and not (xy in ('EE', 'EN')):
-                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a MEDICAMENTOS", regSan])
-            elif prod.getCategory()=='GALENICOS' and not (xy in ('GN', 'GE')):
-                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a GALENICOS", regSan])
-            elif prod.getCategory()=='SUPLEMENTOS' and  not (xy in ('DN', 'DE') or xyz in ('EDN', 'EDE', 'MHN', 'MHE')):
-                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a SUPLEMENTOS", regSan])
+            code = QantuClassifier.digemidRegCode(prod)
+            if code is None:
+                if cat in ('MEDICAMENTOS', 'GALENICOS', 'SUPLEMENTOS'):
+                    errorList.append([prodCode, name, "NUM REG SAN", "El codigo del registro sanitario es invalido", regSan])
+                continue
+            
+            listCodePerCat = PropertyLoader.getRegCodePerCategory()
+            
+            if code in listCodePerCat['GALENICOS'] and prod.getCategory()!='GALENICOS':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como GALENICOS", regSan+" code:"+code])
+            elif code in listCodePerCat['MEDICAMENTOS'] and prod.getCategory()!='MEDICAMENTOS':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como MEDICAMENTOS", regSan+" code:"+code])
+            elif code in listCodePerCat['SUPLEMENTOS'] and prod.getCategory()!='SUPLEMENTOS':
+                errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como SUPLEMENTOS", regSan+" code:"+code])
+            elif code in listCodePerCat['PRODMEDNOCAT'] and not isVoid(prod.getCategory()):
+                errorList.append([prodCode, name, "NUM REG SAN", "NO HAY UNA CATEGORIA DEFINIDA, REPORTAR!!", regSan+" code:"+code])
+            elif prod.getCategory()=='MEDICAMENTOS' and not (code in listCodePerCat['MEDICAMENTOS']):
+                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a MEDICAMENTOS", regSan+" code:"+code])
+            elif prod.getCategory()=='GALENICOS' and not (code in listCodePerCat['GALENICOS']):
+                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a GALENICOS", regSan+" code:"+code])
+            elif prod.getCategory()=='SUPLEMENTOS' and  not (code in listCodePerCat['SUPLEMENTOS']):
+                errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a SUPLEMENTOS", regSan+" code:"+code])
                 
         creat = prod.getCreatedAt()
         if isVoid(creat):
@@ -205,7 +213,7 @@ def run():
         segCodes:dict[str,str]=PropertyLoader.getSegCodes()
         seg2 = prod.getSeg2()
         seg3 = prod.getSeg3()
-        if not seg1 in segCodes.keys():
+        if not isVoid(seg2) and (not seg1 in segCodes.keys()):
             errorList.append([prodCode, name, "SEG 1", "Valor inválido", seg1])
         if not isVoid(seg2) and (not seg2 in segCodes.keys()):
             errorList.append([prodCode, name, "SEG 2", "Valor inválido", seg2])

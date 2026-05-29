@@ -15,4 +15,10 @@ class PropertyLoader:
     def getSegCodes():
         return PropertyLoader.load()['seg_codes']
         
+    @staticmethod
+    def getRegCodePerCategory():
+        return PropertyLoader.load()['reg_code_category']
     
+    @staticmethod
+    def getRegDigCodes():
+        return PropertyLoader.load()['reg_dig_codes']
