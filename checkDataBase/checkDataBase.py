@@ -7,6 +7,7 @@ from lib.SusiiProductLoader import SusiiProductLoader
 import pandas
 import numpy as np
 from lib.BatchUtils import BatchUtils
+from lib.PropertyLoader import PropertyLoader
 
 # load configuration
 config = QantuConfiguration()
@@ -15,7 +16,7 @@ business_ = config.business_
 
 def generateReportFile(errorList):
     
-    cols2 = ["CÓDIGO", "NOMBRE", "COL", "VALOR", "ERROR"
+    cols2 = ["CÓDIGO", "NOMBRE", "COL", "ERROR", "VALOR"
             ]
 
 
@@ -196,7 +197,21 @@ def run():
         if not validDate(creat):
             errorList.append([prodCode, name, "CREATED AT", 
             "Valor inválido", creat])        
-                    
+        
+        seg1 = prod.getSeg1()
+        if isVoid(seg1):
+            errorList.append([prodCode, name, "SEG 1", "Valor vacío", seg1])
+        
+        segCodes:dict[str,str]=PropertyLoader.getSegCodes()
+        seg2 = prod.getSeg2()
+        seg3 = prod.getSeg3()
+        if not seg1 in segCodes.keys():
+            errorList.append([prodCode, name, "SEG 1", "Valor inválido", seg1])
+        if not isVoid(seg2) and (not seg2 in segCodes.keys()):
+            errorList.append([prodCode, name, "SEG 2", "Valor inválido", seg2])
+        if not isVoid(seg3) and (not seg3 in segCodes.keys()):
+            errorList.append([prodCode, name, "SEG 3", "Valor inválido", seg3])
+        
         
     generateReportFile(errorList)
 
