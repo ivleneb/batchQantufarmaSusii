@@ -7,6 +7,8 @@ from lib.QantuGeneral import QantuGeneral
 from lib.QantuPackage import QantuPackage
 from lib.QantuProduct import QantuProduct
 from lib.ReportDownloader import ReportDownloader
+from lib.QantuMergedProduct import QantuMergedProduct
+from lib.QantuMergedProductFactory import QantuMergedProductFactory
 import pandas
 from datetime import datetime
 import json
@@ -167,7 +169,10 @@ class QantuProductMerger:
                 if typ == prod2.getType():
                     if ch == prod2.getCharacteristic():
                         if qtty == prod2.getQtty():
-                            prod.merge(prod2)
+                            print("MERGING:"+prod.getName()+" AND "+prod2.getName())
+                            prod = QantuMergedProductFactory.merge(prod, prod2)
+                            prodDict[code] = prod
+                            #prod.merge(prod2)
                             del prodDict[code2]
         return prodDict
 
