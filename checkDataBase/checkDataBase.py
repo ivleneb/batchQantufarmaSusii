@@ -221,6 +221,12 @@ def run():
         if not isVoid(seg3) and (not seg3 in segCodes.keys()):
             errorList.append([prodCode, name, "SEG 3", "Valor inválido", seg3])
         
+        price = prod.getPrice()
+        cost = prod.getLastCost()
+        mcp = (price-cost)/price
+        mcpper = round(mcp*100,2)
+        if mcpper < 10 and prod.getPriceLogic():
+            errorList.append([prodCode, name, "PRICE", "MC% es menor al 10%", mcpper])
         
     generateReportFile(errorList)
 
