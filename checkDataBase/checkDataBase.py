@@ -225,8 +225,9 @@ def run():
         cost = prod.getLastCost()
         mcp = (price-cost)/price
         mcpper = round(mcp*100,2)
+        ideal = round(cost/0.9, 2)
         if mcpper < 10 and prod.getPriceLogic():
-            errorList.append([prodCode, name, "PRICE", "MC% es menor al 10%", mcpper])
+            errorList.append([prodCode, name, "PRICE", "MC% es menor al 10%. Minimum price "+str(ideal), mcpper])
         
     generateReportFile(errorList)
 
