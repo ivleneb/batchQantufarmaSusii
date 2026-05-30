@@ -90,6 +90,7 @@ def createDataListPack(packDict):
 
 def createDataListToImport(prodDict):
     data = []
+    changes = []
     count = 0
 
     for prod in prodDict.values():
@@ -123,7 +124,7 @@ def createDataListToImport(prodDict):
             # general margin
             # mcups = priceGeneral(prod)
         price = PriceManager.computePrice(prod)
-        
+        oldPrice = prod.getPrice()
         gan_per = price.getProfitPer() #(mcups/(1-mcups))
         #gan_per = round(gan_per, 4)
         #prod.setPorcentajeDeGanancia(gan_per*100)
@@ -132,6 +133,9 @@ def createDataListToImport(prodDict):
         if presug<=prod.getPrice():
             print("Product has a better price than logic "+prod.getName())
             continue
+        elif presug < 0.5:
+            prod.setPrice(0.5)
+            prod.setPorcentajeDeGanancia('')
         else:
             prod.setPrice(presug)
             # susii doesn't allow gain percentage greater than 1000
@@ -140,9 +144,7 @@ def createDataListToImport(prodDict):
             else:
                 prod.setPorcentajeDeGanancia('')
 
-        if presug < 0.5:
-            prod.setPrice(0.5)
-            prod.setPorcentajeDeGanancia('')
+        ls0 = [prod.getCode(), prod.getName(), prod.getPrice(), oldPrice]
         
         ls = [ prod.getCode(), prod.getName(), prod.getAlias(), prod.getUnidad(),
             prod.getPrice(), round(prod.getLastCost(), 3), prod.getStock(), prod.getNumRegSan(),
@@ -157,7 +159,8 @@ def createDataListToImport(prodDict):
         ]
         
         data.append(ls)
-    return data
+        changes.append(ls0)
+    return data, changes
 
 def createDataListToImportPack(prodDict, packDict):
     data = []
@@ -267,16 +270,22 @@ def run():
             "BÚSQUEDA DESDE VENTAS", "CATEGORÍA SUNAT"
             ]
 
+    cols3 = ["CODIGO", "NOMBRE", "NUEVO PRECIO", "PRECIO"
+        ]
 
-    import_prods = createDataListToImport(medsDict)
+    import_prods, changes = createDataListToImport(medsDict)
     import_df = pandas.DataFrame(import_prods, columns = cols2)
+    changes_df = pandas.DataFrame(changes, columns=cols3)
     createFileReport(import_df, 'PriceToImportMeds')
+    createFileReport(changes_df, 'PriceToImportMedsChanges')
         
     
-    import_prods = createDataListToImport(otherDict)
+    import_prods, changes = createDataListToImport(otherDict)
     import_df = pandas.DataFrame(import_prods, columns = cols2)
+    changes_df = pandas.DataFrame(changes, columns=cols3)
     createFileReport(import_df, 'PriceToImportOther')
-
+    createFileReport(changes_df, 'PriceToImportOtherChanges')
+    
     cols3 = [ "CÓDIGO", "NOMBRE", "ALIAS", "UNIDAD", "PRECIO DE VENTA", "CATEGORÍA", "CÓDIGO (ITEM)", "NOMBRE (ITEM)",
               "ALIAS (ITEM)", "UNIDAD (ITEM)", "PRECIO DE VENTA (ITEM)", "CANTIDAD (ITEM)"
         ]
