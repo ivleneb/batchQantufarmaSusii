@@ -9,3 +9,5 @@
 *.pdf
 *.xml
 lib/cfg.json
+__pycache__/
+
