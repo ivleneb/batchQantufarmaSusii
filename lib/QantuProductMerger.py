@@ -71,7 +71,9 @@ class QantuProductMerger:
                             if ff == prod2.getFFSimple():
                                 if qq == prod2.getCantidad():
                                     print("MERGING:"+prod.getName()+" AND "+prod2.getName())
-                                    prod.merge(prod2)
+                                    #prod.merge(prod2)
+                                    prod = QantuMergedProductFactory.merge(prod, prod2)
+                                    prodDict[code] = prod
                                     del prodDict[code2]
             else:
                 for code2 in list(prodDict):
@@ -92,8 +94,16 @@ class QantuProductMerger:
                             if ff == prod2.getFFSimple():
                                 if qq == prod2.getCantidad():
                                     print("MERGING:"+prod.getName()+" AND "+prod2.getName())
-                                    prod.merge(prod2)
+                                    #prod.merge(prod2)
+                                    prod = QantuMergedProductFactory.merge(prod, prod2)
+                                    prodDict[code] = prod
                                     del prodDict[code2]
+        
+        for key in list(prodDict.keys()):
+            prod = prodDict[key]
+            if prod.getCategory()=='MEDICAMENTOS' and isinstance(prod, QantuMergedProduct) and prod.getCode()!=key:
+                prodDict[prod.getCode()]=prod
+                del prodDict[key]
         return prodDict
 
     # Combine galenics items with same form and concentration
@@ -131,8 +141,16 @@ class QantuProductMerger:
                 if formu == prod2.getFormula():
                     if cc == prod2.getConcentration():
                         if qtty == prod2.getQtty():
-                            prod.merge(prod2)
+                            #prod.merge(prod2)
+                            prod = QantuMergedProductFactory.merge(prod, prod2)
+                            prodDict[code] = prod
                             del prodDict[code2]
+        
+        for key in list(prodDict.keys()):
+            prod = prodDict[key]
+            if prod.getCategory()=='GALENICOS' and isinstance(prod, QantuMergedProduct) and prod.getCode()!=key:
+                prodDict[prod.getCode()]=prod
+                del prodDict[key]
         return prodDict
 
     # Combine med devs items with same type, mark, subcategory, qtty and units
@@ -174,6 +192,12 @@ class QantuProductMerger:
                             prodDict[code] = prod
                             #prod.merge(prod2)
                             del prodDict[code2]
+        
+        for key in list(prodDict.keys()):
+            prod = prodDict[key]
+            if prod.getCategory()=='DISPOSITIVOS MEDICOS' and isinstance(prod, QantuMergedProduct) and prod.getCode()!=key:
+                prodDict[prod.getCode()]=prod
+                del prodDict[key]
         return prodDict
 
     # Combine med devs items with same type, mark, subcategory, qtty and units

@@ -100,7 +100,7 @@ class QantuMergedProduct:
         self.code = "MERGED"+p1.getCode()
     
     def merge(self, prod:QantuProduct):
-        self.products[prod.getCode]=prod
+        self.products[prod.getCode()]=prod
         if prod.getLastCost() < self.getLastCost():
             self.setName(prod.getUnitsCajaName() +'\n ó '+ self.getName())
             self.setLastCost(prod.getLastCost())

@@ -1,6 +1,10 @@
 from .QantuMergedProduct import QantuMergedProduct
 from .QantuMergedDevice import QantuMergedDevice
 from .QantuDevice import QantuDevice
+from .QantuMergedMedicine import QantuMergedMedicine
+from .QantuMedicine import QantuMedicine
+from .QantuMergedGalenico import QantuMergedGalenico
+from .QantuGalenico import QantuGalenico
 
 class QantuMergedProductFactory:
     @staticmethod
@@ -19,7 +23,11 @@ class QantuMergedProductFactory:
             return prod1
         else:
             print("CASE 4")
-            if isinstance(prod1, QantuDevice):
+            if isinstance(prod1, QantuDevice) and isinstance(prod2, QantuDevice):
                 return QantuMergedDevice(prod1, prod2)
+            elif isinstance(prod1, QantuMedicine) and isinstance(prod2, QantuMedicine):
+                return QantuMergedMedicine(prod1, prod2)
+            elif isinstance(prod1, QantuGalenico) and isinstance(prod2, QantuGalenico):
+                return QantuMergedGalenico(prod1, prod2)
             else:
                 Exception("Type "+prod1.getCategory()+" Not implemented yet")

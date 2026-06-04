@@ -391,3 +391,6 @@ class QantuProduct:
         if self.getPrice()==0:
             return 0.0
         return round((self.getPrice()-self.getLastCost())/self.getPrice(), 2)
+
+    def functionalCode(self):
+        return self.code

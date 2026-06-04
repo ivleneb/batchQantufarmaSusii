@@ -54,3 +54,6 @@ class QantuGalenico(QantuProduct):
     def merge(self, prod):
         super().merge(prod)
         self.code = self.getFormula()+self.getConcentration()+self.getQtty()
+        
+    def functionalCode(self):
+        return self.getFormula()+self.getConcentration()+self.getQtty()
