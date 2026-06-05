@@ -86,6 +86,12 @@ def summaryStats(salesDataFile, days):
     # dataframe Products
     sales_df = pandas.read_excel(salesDataFile, skiprows=8)
 
+    if sales_df.columns[0] == "FECHA":
+        print("✅ La primera celda es FECHA")
+    else:
+        print("❌ La primera celda NO es FECHA")
+        sales_df = pandas.read_excel(salesDataFile, skiprows=7)
+
     dictSeller = {}
     dictHour = {f"{i:02d}": HourStat(f"{i:02d}") for i in range(7, 23)}
     dictDia = {}
