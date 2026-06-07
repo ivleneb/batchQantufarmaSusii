@@ -110,6 +110,14 @@ def run():
                         print("Element ["+codeInner+"]"+prod2.products[codeInner].getName()+" exists in destiny DB.")
                         skip = True
                         break
+                    else:
+                        for codeOrigin in productDict:
+                            if prod2.products[codeInner].getName()==productDict[codeOrigin].getName():
+                                print("Element ["+codeInner+"]"+prod2.products[codeInner].getName()+" has equivalente in destiny DB.")
+                                skip = True
+                                break
+                        if skip==True:
+                            break     
                 if skip:
                     continue
             # si no es combinado revisar si puede existir en algun combinado en el destino
