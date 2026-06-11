@@ -177,19 +177,32 @@ def run():
         if isVoid(regSan):
             errorList.append([prodCode, name, "NUM REG SAN", "Valor vacío", regSan])
         else:
-            code = QantuClassifier.digemidRegCode(prod)
-            if code is None:
-                if cat in ('MEDICAMENTOS', 'GALENICOS', 'SUPLEMENTOS'):
-                    errorList.append([prodCode, name, "NUM REG SAN", "El codigo del registro sanitario es invalido", regSan])
+            code = ""
+            
+            if cat in ('MEDICAMENTOS', 'GALENICOS'):
+                code = QantuClassifier.digemidRegCode(prod)
+                if code is None:
+                    errorList.append([prodCode, name, "NUM REG SAN", "El codigo del registro sanitario DIGEMID es invalido (cambiar de categoria)", regSan])
+                    continue
+            elif cat in ('SUPLEMENTOS'):
+                code = QantuClassifier.digemidRegCode(prod)
+                if code is None:
+                    code = QantuClassifier.digesaRegCode(prod)
+                    if code is None:
+                        errorList.append([prodCode, name, "NUM REG SAN", "El codigo del registro sanitario DIGESA/DIGEMID es invalido", regSan])
+                        continue
+            else:
                 continue
             
+            
             listCodePerCat = PropertyLoader.getRegCodePerCategory()
+            listCodePerCatDigesa = PropertyLoader.getRegDigesaCodePerCategory()
             
             if code in listCodePerCat['GALENICOS'] and prod.getCategory()!='GALENICOS':
                 errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como GALENICOS", regSan+" code:"+code])
             elif code in listCodePerCat['MEDICAMENTOS'] and prod.getCategory()!='MEDICAMENTOS':
                 errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como MEDICAMENTOS", regSan+" code:"+code])
-            elif code in listCodePerCat['SUPLEMENTOS'] and prod.getCategory()!='SUPLEMENTOS':
+            elif (code in listCodePerCat['SUPLEMENTOS'] or code in listCodePerCatDigesa['SUPLEMENTOS']) and prod.getCategory()!='SUPLEMENTOS':
                 errorList.append([prodCode, name, "NUM REG SAN", "Categorizar como SUPLEMENTOS", regSan+" code:"+code])
             elif code in listCodePerCat['PRODMEDNOCAT'] and not isVoid(prod.getCategory()):
                 errorList.append([prodCode, name, "NUM REG SAN", "NO HAY UNA CATEGORIA DEFINIDA, REPORTAR!!", regSan+" code:"+code])
@@ -197,7 +210,7 @@ def run():
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a MEDICAMENTOS", regSan+" code:"+code])
             elif prod.getCategory()=='GALENICOS' and not (code in listCodePerCat['GALENICOS']):
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a GALENICOS", regSan+" code:"+code])
-            elif prod.getCategory()=='SUPLEMENTOS' and  not (code in listCodePerCat['SUPLEMENTOS']):
+            elif prod.getCategory()=='SUPLEMENTOS' and  not (code in listCodePerCat['SUPLEMENTOS'] or code in listCodePerCatDigesa['SUPLEMENTOS'] ):
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a SUPLEMENTOS", regSan+" code:"+code])
                 
         creat = prod.getCreatedAt()

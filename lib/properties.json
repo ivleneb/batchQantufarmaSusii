@@ -49,5 +49,16 @@
 		"GALENICOS":["GN", "GE"],
 		"SUPLEMENTOS":["DN", "DE", "MHN", "MHE", "EDN", "EDE"],
 		"PRODMEDNOCAT":["RN", "RE", "ADN", "ADE", "GMN", "GME"]
+	},
+	"reg_digesa_codes":{
+		"G66": "",
+		"G65": "",
+		"G68": "",
+		"G77": "",
+		"I41": "",
+		"N83": ""
+	},
+	"reg_digesa_code_category":{
+		"SUPLEMENTOS":["G66", "G65", "G68", "G77", "I41", "N83"]
 	}
 }

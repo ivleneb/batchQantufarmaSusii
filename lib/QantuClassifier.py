@@ -20,4 +20,23 @@ class QantuClassifier:
         if xy in lsCodes:
             return xy
         
-        return None 
+        return None
+    
+    @staticmethod
+    def digesaRegCode(prod: QantuProduct):
+        regSan = prod.getNumRegSan()
+        regSan = regSan.strip()
+        if len(regSan)!=9:
+            return None
+        elif not regSan[8] in ('N', 'E'):
+            return None
+        elif any(c.isalpha() for c in regSan[1:8]):
+            return None 
+        
+        lsCodes = PropertyLoader.getRegDigesaCodes()
+        
+        xyz = regSan[0:3]
+        if xyz in lsCodes:
+            return xyz
+        
+        return None

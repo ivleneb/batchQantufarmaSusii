@@ -13,7 +13,7 @@ def createDataList(prodDict):
     data = []
     count = 0
 
-    for key, prod in prodDict.items():
+    for prod in prodDict.values():
         count = count + 1
 
         if prod.getRemainingDays()<=60 and prod.getStock()!=0:

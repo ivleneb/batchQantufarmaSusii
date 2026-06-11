@@ -22,3 +22,11 @@ class PropertyLoader:
     @staticmethod
     def getRegDigCodes():
         return PropertyLoader.load()['reg_dig_codes']
+    
+    @staticmethod
+    def getRegDigesaCodes():
+        return PropertyLoader.load()['reg_digesa_codes']
+    
+    @staticmethod
+    def getRegDigesaCodePerCategory():
+        return PropertyLoader.load()['reg_digesa_code_category']
