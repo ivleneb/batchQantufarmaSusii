@@ -19,6 +19,7 @@ class SusiiProductLoader:
         self.businessId = businessId
         self.prodSale_df = None
         self.productDict = None
+        self.productDisableDict = None
         self.beginDt = '2023-05-27'
         todayDt = datetime.now().date()
         tommorrow = todayDt + timedelta(days=1)
@@ -74,6 +75,7 @@ class SusiiProductLoader:
 
         # Load products
         productDict:dict[str, QantuProduct] = {}
+        productDisableDict:dict[str, QantuProduct] = {}
         for index, row in prod_df.iterrows():
             # only add sales that are products
             prod = self.getProduct(prod_df, row['CÓDIGO'])
@@ -84,8 +86,11 @@ class SusiiProductLoader:
                 if downloadSaleData:
                     self.addSaleData(prod, self.prodSale_df)
                 productDict[prod.getCode()]=prod
+            elif prod.isDisable():
+                productDisableDict[prod.getCode()]=prod
         
         self.productDict = productDict
+        self.productDisableDict = productDisableDict
                     
         return productDict
     
@@ -126,7 +131,7 @@ class SusiiProductLoader:
                 
         for key, row in pack_df.iterrows():
             # only add sales that are products
-            pack = self.getPackage(self.productDict, pack_df, row['CÓDIGO'])
+            pack = self.getPackage(self.productDict, pack_df, row['CÓDIGO'], self.productDisableDict)
             if not (pack is None):
                 packDict[pack.getCode()]=pack
                 if self.prodSale_df is not None:
@@ -228,7 +233,7 @@ class SusiiProductLoader:
         else:
             raise Exception("Code with multiple products.")
     
-    def getPackage(self, prodDict, pack_df, code):
+    def getPackage(self, prodDict, pack_df, code, productDisableDict=None):
         sub_df = pack_df.loc[pack_df['CÓDIGO'] == code]
         if len(sub_df)>0:
             row = sub_df.iloc[0]
@@ -247,6 +252,9 @@ class SusiiProductLoader:
                     cost=cost+cantItem*prod.getLastCost()
                     if prod.getCategory()=='MEDICAMENTOS':
                         pack.setGenerico(prod.isGenerico())
+                elif not productDisableDict is None:
+                    if not codeItem in productDisableDict:
+                        print(f"WARN index={index} Package {code}[{pName}] item not found {codeItem}")
                 else:
                     print(f"WARN index={index} Package {code}[{pName}] item not found {codeItem}")
                 
