@@ -8,4 +8,4 @@ class QantuMergedDevice(QantuMergedProduct, QantuDevice):
         self.__dict__.update(copy.deepcopy(p1.__dict__))
         # initialize merged product properties
         QantuMergedProduct.__init__(self, p1, p2)
-        
+        self.code = self.getType()+self.getCharacteristic()+self.getQtty()

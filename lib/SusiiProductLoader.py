@@ -38,7 +38,7 @@ class SusiiProductLoader:
     def setEndDateSaleData(self, end):
         self.endDt = end
     
-    def downloadProducts(self, downloadSaleData:bool=False, backup:bool=False):
+    def downloadProducts(self, downloadSaleData:bool=False, backup:bool=False, includeDisable=False):
         today = datetime.now().strftime("%Y-%m-%d")
         #prodSale_df = None
         if downloadSaleData and self.prodSale_df is None:
@@ -77,7 +77,7 @@ class SusiiProductLoader:
         for index, row in prod_df.iterrows():
             # only add sales that are products
             prod = self.getProduct(prod_df, row['CÓDIGO'])
-            if prod is not None and not prod.isDisable():
+            if prod is not None and (includeDisable or not prod.isDisable()):
                 # add product to data dict
                 if prod.getCode() in productDict:
                     raise Exception("FATAL Index["+str(index)+"] Key must be unique")
