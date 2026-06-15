@@ -1,0 +1,26 @@
+{
+	"uri": "https://api.susii.com",
+	"businessId": SELECT_STORE_NUMBER,
+	"nbrDays": 30,
+	"zeroStock": false,
+	"credentials": {
+		"5053": {
+			"user": "yourUser",
+			"password": "yourPassword"
+		},
+		"8132": {
+			"user": "yourUser",
+			"password": "yourPassword"
+		}
+	},
+	"sales": {
+		"5053":{
+			"startAt": "2023-05-27",
+			"timeWindow": 12
+		},
+		"8132":{
+			"startAt": "2026-04-06",
+			"timeWindow": 12
+		}
+	}
+}
