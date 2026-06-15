@@ -7,8 +7,10 @@ from lib.QantuGeneral import QantuGeneral
 from lib.QantuPackage import QantuPackage
 from lib.QantuProduct import QantuProduct
 from lib.ReportDownloader import ReportDownloader
+from lib.QantuConfiguration import QantuConfiguration
 import pandas
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+from dateutil.relativedelta import relativedelta
 import json
 import numpy as np
 import shutil
@@ -20,7 +22,12 @@ class SusiiProductLoader:
         self.prodSale_df = None
         self.productDict = None
         self.productDisableDict = None
-        self.beginDt = '2023-05-27'
+        # compute begin date
+        config = QantuConfiguration()
+        timeWindow = config.getTimeWindowForBusiness(self.businessId)
+        startDate = config.getStartDateForBusiness(self.businessId)
+        self.beginDt = self.computeBeginDate(timeWindow, startDate)
+        # compute end date
         todayDt = datetime.now().date()
         tommorrow = todayDt + timedelta(days=1)
         self.endDt = tommorrow.strftime("%Y-%m-%d")
@@ -29,7 +36,20 @@ class SusiiProductLoader:
         self.businessId = businessId
         self.prodSale_df = None
         self.productDict = None
+        config = QantuConfiguration()
+        timeWindow = config.getTimeWindowForBusiness(self.businessId)
+        startDate = config.getStartDateForBusiness(self.businessId)
+        self.beginDt = self.computeBeginDate(timeWindow, startDate)
         
+    def computeBeginDate(self, timeWindow, startDateStr):
+        start = datetime.strptime(startDateStr, "%Y-%m-%d").date()
+        today = date.today()
+        virtualBegin = today - relativedelta(months=timeWindow)
+        if virtualBegin < start:
+            return startDateStr
+        else:
+            return virtualBegin.strftime("%Y-%m-%d")
+    
     def getBusinessId(self):
         return self.businessId
     
@@ -144,15 +164,15 @@ class SusiiProductLoader:
         repHeaders = ["CÓDIGO", "NOMBRE", "STOCK ACTUAL",
                       "ÚLTIMO PROVEEDOR", "CANTIDAD TOTAL"]
         
-        beginDt = self.beginDt
-        if self.businessId==8132:
-            beginDt = '2026-04-06'
+        #beginDt = self.beginDt
+        #if self.businessId==8132:
+        #    beginDt = '2026-04-06'
         
-        print("Default begin date for '"+str(self.businessId)+"' is "+beginDt)
+        print("Default begin date for '"+str(self.businessId)+"' is "+self.beginDt)
             
             
         rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
-                              repHeaders, beginDt,
+                              repHeaders, self.beginDt,
                               self.endDt, businessId=self.businessId)
         file_sales = rd.execute()
         if file_sales == "":

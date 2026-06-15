@@ -137,9 +137,23 @@ def defaultCriteria(prod, pedirVal, perVal):
     
     return final
 
+def computeTimeWindowDays():
+    timeWindow = config.getTimeWindowForBusiness(business_)
+    timeWindowDays = timeWindow*30
+    startDate = config.getStartDateForBusiness(business_)
+    delta = datetime.now() - datetime.strptime(startDate, "%Y-%m-%d")
+    
+    if delta.days>timeWindowDays:
+        return timeWindowDays
+    else:
+        return delta.days
+
 def createDataList(prodDict, providers):
     data = []
     count = 0
+    
+    timeWindowDays = computeTimeWindowDays()
+    print("DEFAULT TIME WINDOW DAYS: "+str(timeWindowDays))
 
     for prod in prodDict.values():
         
@@ -147,14 +161,6 @@ def createDataList(prodDict, providers):
             prod.setStock(0)
         
         count = count + 1
-        pedir = '=({dys}*{colV}{rowV}/{n})-{colS}{rowS}'.format(
-            dys=NBR_DAYS, n=prod.getActiveDays(),
-            colV=colVENTAS, rowV=count+1,
-            colS=colSTOCK, rowS=count+1)
-        
-        per = '= {colP}{rowP}/ABS({colS}{rowS})'.format(
-            colP=colPEDIR, rowP=count+1,
-            colS=colSTOCK, rowS=count+1)
         
         if prod.getStock()==0:
             per = '=100'
@@ -162,13 +168,25 @@ def createDataList(prodDict, providers):
         active_days = prod.getActiveDays()
         if active_days==0:
             active_days=1
+            
+        if timeWindowDays<active_days:
+            active_days = timeWindowDays
+        
+        pedir = '=({dys}*{colV}{rowV}/{n})-{colS}{rowS}'.format(
+            dys=NBR_DAYS, n=active_days,
+            colV=colVENTAS, rowV=count+1,
+            colS=colSTOCK, rowS=count+1)
+        
+        per = '= {colP}{rowP}/ABS({colS}{rowS})'.format(
+            colP=colPEDIR, rowP=count+1,
+            colS=colSTOCK, rowS=count+1)
         
         daily_mean = prod.getSoldUnits()/active_days
         
         pedirVal = (NBR_DAYS*daily_mean-prod.getStock())
-        if active_days < 30:
+        if active_days < NBR_DAYS:
             pedirVal = (active_days*daily_mean-prod.getStock())
-            print("LESS THAN 30 days "+prod.getName())
+            print("LESS THAN "+str(NBR_DAYS)+" days "+prod.getName())
             pedir = '={pedirValue}'.format(pedirValue=pedirVal) 
         
         
@@ -228,8 +246,6 @@ def createDataList(prodDict, providers):
 def run():
     providers:list[str] = []
     print("------------------------ INIT ---------------------------")
-
-    now = (datetime.now()+ timedelta(days=1)).strftime("%Y-%m-%d")
     
     loader = SusiiProductLoader(business_)
 

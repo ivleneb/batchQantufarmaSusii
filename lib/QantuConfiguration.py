@@ -34,3 +34,9 @@ class QantuConfiguration:
     
     def getPasswordForBusiness(self, business):
         return self.dataCfg["credentials"][str(business)]["password"]
+    
+    def getTimeWindowForBusiness(self, business):
+        return self.dataCfg["sales"][str(business)]["timeWindow"]
+    
+    def getStartDateForBusiness(self, business):
+        return self.dataCfg["sales"][str(business)]["startAt"]
