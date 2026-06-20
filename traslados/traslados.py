@@ -8,12 +8,14 @@ from datetime import datetime
 from lib.SusiiProductLoader import SusiiProductLoader
 from lib.BatchUtils import BatchUtils
 import pandas
+import math
 
 otherBusiness = 8132
 lazaro = 8132
 cobian = 5053
 # load configuration
 config = QantuConfiguration()
+NBR_DAYS = 15
 # business id
 business_ = config.business_
 if business_ == cobian:
@@ -34,6 +36,17 @@ def generateReport(moveList):
     fullpath = out_path+'/'+excel_name
     with pandas.ExcelWriter(fullpath) as excel_writer:
         move_df.to_excel(excel_writer, index=False)
+
+def computeTimeWindowDays():
+    timeWindow = config.getTimeWindowForBusiness(business_)
+    timeWindowDays = timeWindow*30
+    startDate = config.getStartDateForBusiness(business_)
+    delta = datetime.now() - datetime.strptime(startDate, "%Y-%m-%d")
+    
+    if delta.days>timeWindowDays:
+        return timeWindowDays
+    else:
+        return delta.days
 
 def run():
     loader = SusiiProductLoader(business_)
@@ -56,31 +69,46 @@ def run():
     productDictOther = QantuProductMerger.combineProducts(productDictOther)
     
     # for p1 in products of q1
+    timeWindowDays = computeTimeWindowDays()
+    print("DEFAULT TIME WINDOW DAYS: "+str(timeWindowDays))
     moveList = []
     for prodCode in productDict:
         prod = productDict[prodCode]
-        if  prod.isDisable():
+        if  prod.isDisable() or prod.getCategory()=='OFICINA':
             continue
         
         active_days = prod.getActiveDays()
         if active_days==0:
             print("Active days is 0, default to 1")
             active_days=1
+            
+        if timeWindowDays<active_days:
+            active_days = timeWindowDays
+        
         stock = prod.getStock()
         daily_mean = prod.getSoldUnits()/active_days
-        requestQtty = 30*daily_mean - stock
+        requestQtty = NBR_DAYS*daily_mean - stock
         # if p1.pedirValue>=0 and stock of p1 in q1 is 0
-        if requestQtty > 0 and stock == 0:
+        if requestQtty > 0:
+            requestQtty = math.ceil(requestQtty)
             print("Prod["+prod.getName()+"] require units.")
             # if p1 exist in q2 and p1 stock in q2 >= unitsBlister
             if prodCode in productDictOther:
                 # agregar a lista de traslado 1 blister
                 prod2 = productDictOther[prodCode]
                 if prod2.getCategory()=='MEDICAMENTOS':
-                    if prod2.getUnitsBlister()>0 and prod2.getStock()>prod2.getUnitsBlister() and prod2.getStock()-prod2.getUnitsBlister()>0:
+                    if prod2.getUnitsBlister()==1 or prod2.getUnitsBlister()==0:
+                        max_available = math.floor(prod2.getStock()*0.5)
+                        if max_available>requestQtty:
+                            print("Trasladar!")
+                            moveList.append([prod.getCode(), prod.getMergedName(), requestQtty])
+                        elif max_available>0:
+                            print("Trasladar!")
+                            moveList.append([prod.getCode(), prod.getMergedName(), max_available])   
+                    elif prod2.getUnitsBlister()>0 and prod2.getStock()>prod2.getUnitsBlister():
                         print("Trasladar!")
                         moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsBlister()])
-                    elif prod2.getUnitsCaja()>0 and prod2.getStock()>prod2.getUnitsCaja() and prod2.getStock()-prod2.getUnitsCaja()>0:
+                    elif prod2.getUnitsCaja()>0 and prod2.getStock()>prod2.getUnitsCaja():
                         print("Trasladar!")
                         moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsCaja()])
                     else:
@@ -123,6 +151,8 @@ def run():
             # si no es combinado revisar si puede existir en algun combinado en el destino
             elif prod2.functionalCode() in productDict:
                 print("Element ["+prod2.getCode()+"]"+prod2.getName()+" has equivalent in destiny DB.")
+                continue
+            elif prod2.getCategory()=='OFICINA':
                 continue
             else:
                 skip = False
