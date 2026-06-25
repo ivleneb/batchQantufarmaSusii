@@ -30,3 +30,7 @@ class PropertyLoader:
     @staticmethod
     def getRegDigesaCodePerCategory():
         return PropertyLoader.load()['reg_digesa_code_category']
+    
+    @staticmethod
+    def getPresentacionVenta():
+        return PropertyLoader.load()['presentacion_venta']

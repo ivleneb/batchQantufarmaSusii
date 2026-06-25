@@ -10,6 +10,7 @@ from lib.BatchUtils import BatchUtils
 from lib.PropertyLoader import PropertyLoader
 from lib.QantuClassifier import QantuClassifier
 from typing import Union, List
+import re
 
 # load configuration
 config = QantuConfiguration()
@@ -70,6 +71,11 @@ def validDate(dt):
         return True
     except ValueError:
         return False
+
+def matchPattern(ff, patt):
+    patt = patt.replace('%d', r'\d+')
+    patt = '^'+patt+'$'
+    return bool(re.match(patt, ff))
 
 def run():
     loader = SusiiProductLoader(business_)
@@ -154,6 +160,21 @@ def run():
             if not isNumeric(uBli):
                 errorList.append([prodCode, name, "UNITS BLISTER", 
                 "Valor inválido [entero]", uBli])
+                
+            dictValidFF = PropertyLoader.getPresentacionVenta()
+            ff = prod.getFF()
+            matched = False
+            for patt in dictValidFF:
+                if ff==patt:
+                    matched = True
+                    break
+                elif '%d' in patt and matchPattern(ff, patt):
+                    matched = True
+                    break
+            
+            if not matched:
+                errorList.append([prodCode, name, "Presentacion Venta", 
+                "Valor inválido", ff])    
         
         uCaj = prod.getUnitsCaja()
         if isVoid(uCaj):
@@ -176,7 +197,7 @@ def run():
         regSan = prod.getNumRegSan()
         if isVoid(regSan):
             errorList.append([prodCode, name, "NUM REG SAN", "Valor vacío", regSan])
-        else:
+        elif regSan!='SR':
             code = ""
             
             if cat in ('MEDICAMENTOS', 'GALENICOS'):
