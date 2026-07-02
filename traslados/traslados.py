@@ -74,52 +74,67 @@ def run():
     moveList = []
     for prodCode in productDict:
         prod = productDict[prodCode]
-        if  prod.isDisable() or prod.getCategory()=='OFICINA':
+        if  prod.isDisable():
             continue
-        
-        active_days = prod.getActiveDays()
-        if active_days==0:
-            print("Active days is 0, default to 1")
-            active_days=1
-            
-        if timeWindowDays<active_days:
-            active_days = timeWindowDays
-        
-        stock = prod.getStock()
-        daily_mean = prod.getSoldUnits()/active_days
-        requestQtty = NBR_DAYS*daily_mean - stock
-        # if p1.pedirValue>=0 and stock of p1 in q1 is 0
-        if requestQtty > 0:
-            requestQtty = math.ceil(requestQtty)
-            print("Prod["+prod.getName()+"] require units.")
-            # if p1 exist in q2 and p1 stock in q2 >= unitsBlister
-            if prodCode in productDictOther:
-                # agregar a lista de traslado 1 blister
+        elif prod.getCategory()=='OFICINA':
+            if (prod.getStock()<=0
+                and prod.getCode() in productDictOther
+                and any(elem in prod.getName() for elem in ['BOLSA', 'CINTA'])
+                ):
+                
                 prod2 = productDictOther[prodCode]
-                if prod2.getCategory()=='MEDICAMENTOS':
-                    if prod2.getUnitsBlister()==1 or prod2.getUnitsBlister()==0:
-                        max_available = math.floor(prod2.getStock()*0.5)
-                        if max_available>requestQtty:
-                            print("Trasladar!")
-                            moveList.append([prod.getCode(), prod.getMergedName(), requestQtty])
-                        elif max_available>0:
-                            print("Trasladar!")
-                            moveList.append([prod.getCode(), prod.getMergedName(), max_available])   
-                    elif prod2.getUnitsBlister()>0 and prod2.getStock()>prod2.getUnitsBlister():
-                        print("Trasladar!")
-                        moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsBlister()])
-                    elif prod2.getUnitsCaja()>0 and prod2.getStock()>prod2.getUnitsCaja():
-                        print("Trasladar!")
-                        moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsCaja()])
-                    else:
-                        print("Prod ["+prod2.getName()+"] Check units blister or units cja.")
-                elif prod2.getCategory()!='MEDICAMENTOS' and prod2.getStock()>1:
-                    print("Trasladar!")
-                    moveList.append([prod.getCode(), prod.getName(), 1])
+                if prod2.getStock()<2:
+                    continue
+                
+                if prod2.getUnitsCaja()>1 and prod2.getStock()*0.5>prod2.getUnitsCaja():
+                    moveList.append([prod.getCode(), prod.getName(), prod2.getUnitsCaja()])
                 else:
-                    print("There is not enough stock.")
-            else:
-                print("Prod["+prod.getName()+"] NOT in OTHER store.")
+                    moveList.append([prod.getCode(), prod.getName(), 1])
+        else:
+        
+            active_days = prod.getActiveDays()
+            if active_days==0:
+                print("Active days is 0, default to 1")
+                active_days=1
+                
+            if timeWindowDays<active_days:
+                active_days = timeWindowDays
+            
+            stock = prod.getStock()
+            daily_mean = prod.getSoldUnits()/active_days
+            requestQtty = NBR_DAYS*daily_mean - stock
+            # if p1.pedirValue>=0 and stock of p1 in q1 is 0
+            if requestQtty > 0:
+                requestQtty = math.ceil(requestQtty)
+                print("Prod["+prod.getName()+"] require units.")
+                # if p1 exist in q2 and p1 stock in q2 >= unitsBlister
+                if prodCode in productDictOther:
+                    # agregar a lista de traslado 1 blister
+                    prod2 = productDictOther[prodCode]
+                    if prod2.getCategory()=='MEDICAMENTOS':
+                        if prod2.getUnitsBlister()==1 or prod2.getUnitsBlister()==0:
+                            max_available = math.floor(prod2.getStock()*0.5)
+                            if max_available>requestQtty:
+                                print("Trasladar!")
+                                moveList.append([prod.getCode(), prod.getMergedName(), requestQtty])
+                            elif max_available>0:
+                                print("Trasladar!")
+                                moveList.append([prod.getCode(), prod.getMergedName(), max_available])   
+                        elif prod2.getUnitsBlister()>0 and prod2.getStock()>prod2.getUnitsBlister():
+                            print("Trasladar!")
+                            moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsBlister()])
+                        elif prod2.getUnitsCaja()>0 and prod2.getStock()>prod2.getUnitsCaja():
+                            print("Trasladar!")
+                            moveList.append([prod.getCode(), prod.getMergedName(), prod2.getUnitsCaja()])
+                        else:
+                            print("Prod ["+prod2.getName()+"] Check units blister or units cja.")
+                    elif prod2.getCategory()!='MEDICAMENTOS' and prod2.getStock()>1:
+                        print("Trasladar!")
+                        moveList.append([prod.getCode(), prod.getName(), 1])
+                    else:
+                        print("There is not enough stock.")
+                else:
+                    print("Prod["+prod.getName()+"] NOT in OTHER store.")
 
     print("\n\nPRODUCTOS NUEVOS-------------------------------------------------------------------")
     for prodCode in productDictOther:
