@@ -220,7 +220,8 @@ class CommissionManager:
         amt = self.retrievePeriodTotalSales(beginDt, endDt)    
         self.commission = self.getCommissionPer(amt)
         print("Commision percent is:"+str(self.commission))
-
+        
+        print("Download PRODUCTS")
         repHeaders = ["CÓDIGO", "NOMBRE", "STOCK MÍNIMO", "CANTIDAD", "disable (EXTRA)",
                       "creado (EXTRA)", "tipo_tratamiento (EXTRA)", "CATEGORÍA", "PRECIO DE VENTA", "PRECIO DE COMPRA"]
 
@@ -228,14 +229,16 @@ class CommissionManager:
                               repHeaders, beginDt, endDt, businessId=self.businessId)
         file1 = rd.execute()
 
+        print("Download SALES")
         repHeaders = ["CÓDIGO", "NOMBRE", "DISABLE (PRODUCTO - EXTRA)",
                       "QANTUFARMA.JENNY (USUARIO)", "QANTUFARMA.RUTH (USUARIO)",
-                      "QANTUFARMA.MIRIAM (USUARIO)", "QANTUFARMA.ROSANGELA2 (USUARIO)", "CANTIDAD TOTAL"]
+                       "CANTIDAD TOTAL"]
         rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
                               repHeaders, beginDt, endDt, businessId=self.businessId)
         file2 = rd.execute()
 
         #download package data
+        print("Download PACKAGES")
         repHeaders = ["CÓDIGO", "NOMBRE", "CÓDIGO (ITEM)", "NOMBRE (ITEM)", 
                       "CANTIDAD (ITEM)", "CATEGORÍA", "PRECIO DE VENTA", "ÚLTIMO PRECIO DE COMPRA"]
         rd = ReportDownloader("Exportar paquetes.xlsx", "export_packages",
