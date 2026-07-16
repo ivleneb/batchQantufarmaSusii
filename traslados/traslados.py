@@ -2,6 +2,7 @@ import sys
 sys.path.append(r'../')
 from lib.QantuProduct import QantuProduct
 from lib.QantuMergedProduct import QantuMergedProduct
+from lib.QantuPackage import QantuPackage
 from lib.QantuProductMerger import QantuProductMerger
 from lib.QantuConfiguration import QantuConfiguration
 from datetime import datetime
@@ -56,7 +57,19 @@ def run():
     if not productDict:
         print("Fail to downloadProducts.")
         sys.exit(2)
-
+        
+    # load products from q1
+    packDict:dict[str, QantuPackage] = loader.downloadPackages(downloadSaleData=True)
+    if not packDict:
+        print("Fail to downloadPackages.")
+        sys.exit(4)
+        # Incresase sold unit according to package
+    print("First product filter")
+    for pack in packDict.values():
+        for packprodCode, qty in pack.getItems().items():
+            if packprodCode in productDict.keys():
+                productDict[packprodCode].addSoldUnits(qty*pack.getSoldUnits())
+                
     productDict = QantuProductMerger.combineProducts(productDict)
 
     # load products from q2
@@ -91,7 +104,6 @@ def run():
                 else:
                     moveList.append([prod.getCode(), prod.getName(), 1])
         else:
-        
             active_days = prod.getActiveDays()
             if active_days==0:
                 print("Active days is 0, default to 1")
@@ -103,6 +115,8 @@ def run():
             stock = prod.getStock()
             daily_mean = prod.getSoldUnits()/active_days
             requestQtty = NBR_DAYS*daily_mean - stock
+            if "LOSARTAN" in prod.getName():
+                print(prod.getName() + " " + str(requestQtty) + "  "+ str(stock) + " " + str(active_days) + " " + str(prod.getSoldUnits()))
             # if p1.pedirValue>=0 and stock of p1 in q1 is 0
             if requestQtty > 0.5*stock:
                 requestQtty = math.ceil(requestQtty)
