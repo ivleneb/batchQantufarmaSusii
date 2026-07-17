@@ -1,0 +1,5 @@
+[project]
+name = "PySide QtQuick Project"
+
+[tool.pyside6-project]
+files = ["ProductClassifier.py", "SusiiProductCreator/Main.qml", "SusiiProductCreator/qmldir", "SusiiProductCreator/styles/Style.qml", "SusiiProductCreator/styles/qmldir", "SusiiProductCreator/views/ViewInitial.qml", "SusiiProductCreator/views/ViewProductDetail.qml", "images/shield-check.svg", "main.py"]
