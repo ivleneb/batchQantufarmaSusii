@@ -115,9 +115,7 @@ def run():
             stock = prod.getStock()
             daily_mean = prod.getSoldUnits()/active_days
             requestQtty = NBR_DAYS*daily_mean - stock
-            if "LOSARTAN" in prod.getName():
-                print(prod.getName() + " " + str(requestQtty) + "  "+ str(stock) + " " + str(active_days) + " " + str(prod.getSoldUnits()))
-            # if p1.pedirValue>=0 and stock of p1 in q1 is 0
+           # if p1.pedirValue>=0 and stock of p1 in q1 is 0
             if requestQtty > 0.5*stock:
                 requestQtty = math.ceil(requestQtty)
                 print("Prod["+prod.getName()+"] require units.")
