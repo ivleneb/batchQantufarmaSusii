@@ -1,7 +1,10 @@
 import sys
 sys.path.append('../')
 import pandas
+from gestorIncidenciasNomina import GestorIncidenciasNomina
+from gestorIncidenciasNomina import CONFIGURACION_SEDES as config_sede
 from datetime import datetime
+from decimal import Decimal
 #from lib.QantuSeller import QantuSeller
 #from lib.RequestHandler import RequestHandler
 from reportlab.lib.pagesizes import letter
@@ -9,6 +12,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from comisionesVenta.CommissionManager import CommissionManager
+
 
 def sellerPlusPlusBonification(prevSales, sales):
     if prevSales<sales:
@@ -108,6 +112,7 @@ def getPeriod():
 def run():
     
     year, month = getPeriod()
+    gestor = GestorIncidenciasNomina(configuracionSedes=config_sede, year=year, month=month)
     
     # calculo comisiones Q1
     comm = CommissionManager(5053)
@@ -116,7 +121,7 @@ def run():
         print("Fallo commissionManager")
         sys.exit(1)
     
-    users: dict[str, list] = {"RUTH":[],"JENNY":[],"miriam":[], "XIOMARA":[],"YOVANA":[], "rosangela":[]}
+    users: dict[str, list] = {"RUTH":[],"JENNY":[],"miriam":[], "XIOMARA":[],"YOVANA":[], "rosangela":[],"KATHERINE": []}
 
     # dias laborables en un mes
     diasLaborales = 30.0
@@ -139,8 +144,11 @@ def run():
 
     # Q1
     print("Q1--------------------------")
+    businessIdQ1 = 5053
+    listUser = list(horasQ1.keys())
     salarioOperativoQ1 = round(salarioBase*7.0*13.0/horasSemanalesBase,2)
     salarioOperativoDiarioQ1 = round(salarioOperativoQ1/diasLaborales,2)
+    salarioDiarioDecimalQ1 = Decimal(str(salarioOperativoDiarioQ1))
     print("Salario operativo:"+str(salarioOperativoQ1))
     print("Salario Diario operativo:"+str(salarioOperativoDiarioQ1))
     #salarioOperativoQ1_2 = round(salarioBase*7.0*13.0/horasSemanalesBase,2)
@@ -160,30 +168,85 @@ def run():
     #    print(user+" "+str(salario))
     #    users[user].append(['monto fijo', 'Q1 2da quincena', salario])
 
-    #print("Inasistencias")
+    print("Inasistencias")
+    for username in listUser:
+        registros = gestor.get(businessIdQ1,"INASISTENCIA",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento = round(cantidad * salarioDiarioDecimalQ1,2)
+            users[username].append(["inasistencia",f"Q1 {fecha}",-float(descuento)])
     #users['rosangela'].append(['cobertura full day', 'Q1 29/oct', salarioOperativoDiarioQ1_2])
     #users['miriam'].append(['cobertura full day', 'Q1 22/oct', salarioOperativoDiarioQ1_2])
     #users['RUTH'].append(['inasistencia full day', 'Q1 23/oct', -salarioOperativoDiarioQ1_2])
 
     print("Feriados")
+    for username in listUser:
+        registros = gestor.get(businessIdQ1,"Feriado",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            bono = round(cantidad * salarioDiarioDecimalQ1,2)
+            users[username].append(["Feriado",f"Q1 {fecha}",+float(bono)])
     #users['rosangela'].append(['feriado', 'Q1 01/nov', salarioOperativoDiarioQ1])
     #users['JENNY'].append(['feriado', 'Q1 08/dic', salarioOperativoDiarioQ1])
     #users['RUTH'].append(['feriado', 'Q1 09/dic', salarioOperativoDiarioQ1])
     #users['JENNY'].append(['feriado', 'Q1 29/jul', 70.0])
     #users['RUTH'].append(['feriado', 'Q1 28/jul', 70.0])
+    print("Jornadas Extras")        
+    for username in listUser:
+        registros = gestor.get(businessIdQ1,"Jornada",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            jornada = round(cantidad * salarioDiarioDecimalQ1,2)
+            users[username].append(["jornadas extras",f"Q1 {fecha}",+float(jornada)])
 
     print("Pérdidas por Ajustes")
-    lossAdjust = round(-3-0.8-8.6,2)
-    users['JENNY'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
-    users['RUTH'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
+    for username in listUser:
+        registros = gestor.get(businessIdQ1,"descuento_ajuste",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento_ajuste = cantidad
+            users[username].append(["descuento por ajuste",f"Q1 {fecha}",-float(descuento_ajuste)])
+    #lossAdjust = round(-3-0.8-8.6,2)
+    #users['JENNY'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
+    #users['RUTH'].append(['perdidas por ajuste', 'Q1 01-diciembre al 29-diciembre', lossAdjust])
     
     print("Pérdidas por caja chica")
+    for username in listUser:
+        registros = gestor.get(businessIdQ1,"descuento_caja_chica",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento_caja = cantidad
+            users[username].append(["descuento por caja chica",f"Q1 {fecha}",-float(descuento_caja)])
     #users['RUTH'].append(['perdidas por caja chica', 'Q1 01-enero', -2.36])
     
-    print("Perdidas por tardanza")
-    users['JENNY'].append(['perdidas por tardanza', 'Q1 01-enero al 31-enero', round(salarioOperativoDiarioQ1/13)])
+    #print("Perdidas por tardanza")
+    #users['JENNY'].append(['perdidas por tardanza', 'Q1 01-enero al 31-enero', round(salarioOperativoDiarioQ1/13)])
     
-    #print("Pérdidas por Productos vencidos")
+    print("Pérdidas por Vencimiento")
+    for username in listUser:
+        registros = gestor.get(businessIdQ1,"descuento_vencimiento",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento_vencimiento = cantidad
+            users[username].append(["descuento por vencidos",f"Q1 {fecha}",-float(descuento_vencimiento)])
     #lossExpired = -32.13
     #users['JENNY'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
     #users['miriam'].append(['perdidas por productos vencidos', 'Q1 01-agosto al 30-agosto', lossExpired])
@@ -194,8 +257,17 @@ def run():
         users[user].append(['Comisiones ventas', 'Q1 01-enero al 31-enero', getCommission(user, sellersCommDict)])
 
     print("Adelantos")
-    users['RUTH'].append(['adelanto', 'Q1 quincena', round(-600.00,2)])
-    users['JENNY'].append(['adelanto', 'Q1 quincena', round(-600.00,2)])
+    for username in listUser:
+        registros = gestor.get(businessIdQ1,"Adelanto",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            adelanto = cantidad
+            users[username].append(["Adelanto",f"Q1 {fecha}",-float(adelanto)])
+    #users['RUTH'].append(['adelanto', 'Q1 quincena', round(-600.00,2)])
+    #users['JENNY'].append(['adelanto', 'Q1 quincena', round(-600.00,2)])
 
     #bon = sellerPlusPlusBonification(JENNYSalesB, JENNYSales)
     #if bon>0:
@@ -210,9 +282,11 @@ def run():
     #    users['miriam'].append(['Incentivo vendedor++', 'Q1 01-setiembre al 30-setiembre', bon])
 
     print("Q2--------------------------")
-
+    businessIdQ3 = 8132
+    listUser = list(horasQ2.keys())
     salarioOperativoQ2 = round(salarioBase*7.0*7.0/horasSemanalesBase,2)
     salarioOperativoDiarioQ2 = round(salarioOperativoQ2/diasLaborales,2)
+    salarioDiarioDecimal = Decimal(str(salarioOperativoDiarioQ2))
     print("Salario operativo:"+str(salarioOperativoQ2))
     print("Salario Diario operativo:"+str(salarioOperativoDiarioQ2))
 
@@ -224,14 +298,24 @@ def run():
         users[user].append(['monto fijo', 'Q2', salario])
 
     print("Inasistencias")
-    cobertura_morning = round(6*salarioOperativoDiarioQ2/7,2)
-    users['YOVANA'].append(['cobertura mañana', 'Q2 01/mar', cobertura_morning])
-    users['XIOMARA'].append(['cobertura mañana', 'Q2 02/mar', cobertura_morning])
-    users['XIOMARA'].append(['cobertura mañana y tarde', 'Q2 03/mar', cobertura_morning+salarioOperativoDiarioQ2])
-    users['YOVANA'].append(['descanso', 'Q2 03/mar', -salarioOperativoDiarioQ2])
-    users['XIOMARA'].append(['cobertura mañana', 'Q2 04/mar', cobertura_morning])
-    users['XIOMARA'].append(['cobertura mañana', 'Q2 05/mar', cobertura_morning])
-    users['XIOMARA'].append(['cobertura mañana', 'Q2 06/mar', cobertura_morning])
+    for username in listUser:
+        registros = gestor.get(businessIdQ3,"INASISTENCIA",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento = round(cantidad * salarioDiarioDecimal,2)
+            users[username].append(["inasistencia",f"Q3 {fecha}",-float(descuento)])
+            
+    #cobertura_morning = round(6*salarioOperativoDiarioQ2/7,2)
+    #users['YOVANA'].append(['cobertura mañana', 'Q2 01/mar', cobertura_morning])
+    #users['XIOMARA'].append(['cobertura mañana', 'Q2 02/mar', cobertura_morning])
+    #users['XIOMARA'].append(['cobertura mañana y tarde', 'Q2 03/mar', cobertura_morning+salarioOperativoDiarioQ2*porcentajeDelDia])
+    #users['YOVANA'].append(['descanso', 'Q2 03/mar', -salarioOperativoDiarioQ2])
+    #users['XIOMARA'].append(['cobertura mañana', 'Q2 04/mar', cobertura_morning])
+    #users['XIOMARA'].append(['cobertura mañana', 'Q2 05/mar', cobertura_morning])
+    #users['XIOMARA'].append(['cobertura mañana', 'Q2 06/mar', cobertura_morning])
     #users['miriam'].append(['cobertura full day', 'Q1 22/oct', salarioOperativoDiarioQ1_2])
     #users['RUTH'].append(['inasistencia full day', 'Q1 23/oct', -salarioOperativoDiarioQ1_2])
     
@@ -244,6 +328,26 @@ def run():
     #users['JENNY'].append(['abono por cubrir horario full day', 'Q2 26/ago', +salarioQ2RUTHXdia])
 
     print("Feriados")
+    for username in listUser:
+        registros = gestor.get(businessIdQ3,"Feriado",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            bono = round(cantidad * salarioDiarioDecimal,2)
+            users[username].append(["Feriado",f"Q3 {fecha}",+float(bono)])
+            
+    print("Jornadas Extras")
+    for username in listUser:
+        registros = gestor.get(businessIdQ3,"Jornada",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            jornada = round(cantidad * salarioDiarioDecimal,2)
+            users[username].append(["jornadas extras",f"Q3 {fecha}",+float(jornada)])
     #print("Feriado XIOMARA")
     #users['XIOMARA'].append(['feriado', 'Q2 08/dic', round(salarioOperativoDiarioQ2,2)])
     #users['XIOMARA'].append(['feriado', 'Q2 28-29/jul', round(salarioOperativoDiarioQ2,2)*2])
@@ -258,17 +362,75 @@ def run():
 
 
     print("Pérdidas por Ajustes")
+    for username in listUser:
+        registros = gestor.get(businessIdQ3,"descuento_ajuste",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento_ajuste = cantidad
+            users[username].append(["descuento por ajuste",f"Q3 {fecha}",-float(descuento_ajuste)])
+            
+    print("Pérdidas por Caja Chica")
+    for username in listUser:
+        registros = gestor.get(businessIdQ3,"descuento_caja_chica",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento_caja = cantidad
+            users[username].append(["descuento por caja chica",f"Q3 {fecha}",-float(descuento_caja)])
+            
+    print("Pérdidas por Vencimiento")
+    for username in listUser:
+        registros = gestor.get(businessIdQ3,"descuento_vencimiento",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento_vencimiento = cantidad
+            users[username].append(["descuento por vencidos",f"Q3 {fecha}",-float(descuento_vencimiento)])
+    
     #lossAdjust = round(-5-0.3,2)
     #users['XIOMARA'].append(['perdidas por ajuste', 'Q2 01-enero al 31-enero', round(lossAdjust,2)])
     #users['YOVANA'].append(['perdidas por ajuste', 'Q2 01-enero al 31-enero', round(lossAdjust,2)])
     #users['rosangela'].append(['perdidas por ajuste', 'Q2 01-noviembre al 29-noviembre', round(lossAdjust,2)])
 
     print("Adelantos")
-    users['YOVANA'].append(['adelanto', 'Q2 quincena', round(-350.00,2)])
+    for username in listUser:
+        registros = gestor.get(businessIdQ3,"Adelanto",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            adelanto = cantidad
+            users[username].append(["Adelanto",f"Q3 {fecha}",-float(adelanto)])
+    #users['YOVANA'].append(['adelanto', 'Q2 quincena', round(-350.00,2)])
     #users['XIOMARA'].append(['adelanto', 'Q2 quincena', round(-500.00,2)])
     #users['rosangela'].append(['adelanto', 'Q2 quincena', round(-200.00,2)])
-
-
+    #------------------------------------------------------------------------------------
+    print("Ejemplo de Como hacer caso de Katherine: line 416")
+    print("Feriados de Katherine en ambas sedes")
+    for businessId in [5053, 8132]:
+        registros = gestor.get(businessId,"feriado","KATHERINE")
+        if businessId == 5053:
+            salarioDiario = Decimal(str(salarioOperativoDiarioQ1))
+            sede = "Q1"
+        else:
+            salarioDiario = Decimal(str(salarioOperativoDiarioQ2))
+            sede = "Q3"
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            bono = round(cantidad * salarioDiario, 2)
+            users["KATHERINE"].append(["feriado",f"{sede} {fecha}",+float(bono)])
+        
     headers = ['Concepto', 'Descripción', 'Monto']
 
     now = datetime.now().strftime("%Y%m%d_%H%M")
