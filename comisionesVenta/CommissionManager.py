@@ -17,7 +17,8 @@ class CommissionManager:
         self.categoriesEnabled={'QANTUFARMA.RUTH (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                        'QANTUFARMA.JENNY (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
                        'QANTUFARMA.MIRIAM (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
-                       'QANTUFARMA.ROSANGELA2 (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS']
+                       'QANTUFARMA.ROSANGELA2 (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS'],
+                       'QANTUFARMA.KATHERINE (USUARIO)':['SUPLEMENTOS', 'MEDICAMENTOS']         
                        }
         
         self.prodDBDict = {}
@@ -231,7 +232,7 @@ class CommissionManager:
 
         print("Download SALES")
         repHeaders = ["CÓDIGO", "NOMBRE", "DISABLE (PRODUCTO - EXTRA)",
-                      "QANTUFARMA.JENNY (USUARIO)", "QANTUFARMA.RUTH (USUARIO)",
+                      "QANTUFARMA.JENNY (USUARIO)", "QANTUFARMA.RUTH (USUARIO)", "QANTUFARMA.KATHERINE (USUARIO)",
                        "CANTIDAD TOTAL"]
         rd = ReportDownloader("Exportar ventas por producto.xlsx", "export_sales_per_product",
                               repHeaders, beginDt, endDt, businessId=self.businessId)

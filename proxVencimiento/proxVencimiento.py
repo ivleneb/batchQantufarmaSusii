@@ -17,7 +17,7 @@ def createDataList(prodDict):
     for prod in prodDict.values():
         count = count + 1
 
-        if prod.getRemainingDays()<=60 and prod.getStock()!=0:
+        if prod.getRemainingDays()<=90 and prod.getStock()!=0:
             data.append( [prod.getCode(), prod.getName(), prod.getCategory(), prod.getLastCost(),
                       prod.getPrice(), prod.getStock(), prod.getCreatedAt(), prod.getFechaVto(), prod.getStock()*prod.getLastCost()])
     return data

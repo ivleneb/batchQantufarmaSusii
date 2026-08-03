@@ -150,6 +150,11 @@ def run():
                 errorList.append([prodCode, name, "GENERICO", 
                 "Valor inválido ["+",".join(map(str,validVals))+"]", gen])
             
+            minStock = prod.getMinStock()
+            if not isVoid(gen) and gen==2 and (isVoid(minStock) or minStock==0):
+                errorList.append([prodCode, name, "MIN STOCK", 
+                "Requiere valor para productos gen=2", minStock])
+            
             # validations for specific forms
             if not ('TAB' in prod.getFF()) and not ('CAP' in prod.getFF()):
                 continue

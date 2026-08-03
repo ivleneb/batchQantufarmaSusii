@@ -1,7 +1,6 @@
 import sys
 sys.path.append("../")
 from lib.RequestHandler import RequestHandler
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from decimal import Decimal
@@ -74,7 +73,7 @@ class GestorIncidenciasNomina:
         return fechaInicioTexto, fechaFinTexto
     
     def normalizarNombre(self, nombre):
-            return " ".join(nombre.strip().upper().split())
+        return " ".join(nombre.strip().upper().split())
     
     def cargarDatos(self):
         for businessId in self.configuracionSedes:
