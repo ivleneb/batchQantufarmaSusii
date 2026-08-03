@@ -92,14 +92,11 @@ class GestorIncidenciasNomina:
             respuesta = request.execute()
             resultados = respuesta.get("results") or []
             total = respuesta.get("count")
-            paginaSiguiente = respuesta.get("next")
             gastos.extend(resultados)
-            print(f"Sede {businessId} - página {pagina}: {len(resultados)} de {total} registros.")
+            print(f"Sede {businessId} - página {pagina}: {len(resultados)} registros obtenidos. Acumulados: {len(gastos)} de {total}.")
             if not resultados:
                 break
-            if total is not None and len(gastos) >= total:
-                break
-            if paginaSiguiente is None:
+            if total is not None:
                 break
             pagina += 1
         self.gastosPorSede[businessId] = gastos
@@ -110,11 +107,12 @@ class GestorIncidenciasNomina:
         if not fechaTexto:
             return False
         try:
-            fecha = datetime.fromisoformat(fechaTexto.replace("Z", "+00:00"))
+            fechaUtc = datetime.fromisoformat(fechaTexto.replace("Z", "+00:00"))
+            fechaLocal = fechaUtc.astimezone(ZoneInfo("America/Lima"))
         except (TypeError, ValueError):
             print(f"Advertencia: fecha inválida: {fechaTexto}")
             return False
-        return (fecha.year == self.year and fecha.month == self.month)
+        return (fechaLocal.year == self.year and fechaLocal.month == self.month)
 
     def get(self, businessId, apartado, username):
         if businessId not in self.configuracionSedes:

@@ -121,7 +121,7 @@ def run():
         print("Fallo commissionManager")
         sys.exit(1)
     
-    users: dict[str, list] = {"RUTH":[],"JENNY":[],"miriam":[], "XIOMARA":[],"YOVANA":[], "rosangela":[],"KATHERINE": []}
+    users: dict[str, list] = {"RUTH":[],"JENNY":[],"miriam":[], "XIOMARA":[],"YOVANA":[], "rosangela":[],"KATHERINE":[]}
 
     # dias laborables en un mes
     diasLaborales = 30.0
