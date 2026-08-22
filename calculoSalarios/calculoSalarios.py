@@ -106,6 +106,60 @@ def getPeriod():
         else:
             print("Valor no numérico en periodo ["+year+"]["+month+"].")
             continue
+def validarObservationsReemplazo(observations, users):
+    observations = observations.strip()
+    if observations.upper() == "SIN REEMPLAZO":
+        return None, None
+    if ":" not in observations:
+        raise ValueError(f"Formato inválido en observations: '{observations}'. "
+                         "Formato esperado: NOMBRE:CANTIDAD o SIN REEMPLAZO")
+    partes = observations.split(":")
+    if len(partes) != 2:
+        raise ValueError(f"Formato inválido en observations: '{observations}'. "
+                         "Formato esperado: NOMBRE:CANTIDAD o SIN REEMPLAZO")
+    usernameReemplazo = partes[0].strip().upper()
+    cantidadReemplazo = partes[1].strip()
+    if not usernameReemplazo:
+        raise ValueError("No se indicó el nombre del reemplazo.")
+    if usernameReemplazo not in users:
+        raise ValueError(f"El usuario '{usernameReemplazo}' no existe en el sistema.")
+    try:
+        cantidadReemplazo = Decimal(cantidadReemplazo)
+    except:
+        raise ValueError(f"La cantidad '{partes[1]}' del reemplazo no es válida.")
+    if cantidadReemplazo <= 0 or cantidadReemplazo > 1:
+        raise ValueError(f"La cantidad del reemplazo debe estar "
+                         f"entre 0 y 1. Valor recibido: {cantidadReemplazo}")
+    return usernameReemplazo, cantidadReemplazo
+
+def procesarInasistencias(gestor, businessId, sede, listUser, users, userLogistic, salarioDiarioTecnica, salarioDiarioLogistica):
+    print(f"Inasistencias {sede}")
+    for username in listUser:
+        registros = gestor.get(businessId, "INASISTENCIA", username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            observations = registro["observations"]
+            if cantidad <= 0:
+                continue
+            # 1. Descontar inasistencia
+            if username in userLogistic:
+                descuento = round(cantidad * salarioDiarioLogistica, 2) #si es logistica
+            else:
+                descuento = round(cantidad * salarioDiarioTecnica, 2) #si es tecnica
+            users[username].append(["inasistencia", f"{sede} {fecha}", -float(descuento)])
+            # 2. Agregar jornada al remplazo
+            reemplazo, cantidadReemplazo = (validarObservationsReemplazo(observations, users))
+            if reemplazo is None:
+                continue
+            jornada = round(cantidadReemplazo * salarioDiarioTecnica, 2)
+            users[reemplazo].append(["jornada", f"{sede} {fecha} - Reemplazo de {username}",
+                                     float(jornada)])
+            # 3. Si el remplazo es de user logistica
+            if reemplazo in userLogistic:
+                descuentoLogistica = round(salarioDiarioLogistica, 2)
+                users[reemplazo].append(["inasistencia_logistica", f"{sede} {fecha} - Reemplazo",
+                                         -float(descuentoLogistica)])
 
 def run():
     
@@ -164,24 +218,12 @@ def run():
         salario = round(weekHoursBasedSalary(horasQ1[user], salarioBase, horasSemanalesBase),2)
         print(user+" "+str(salario))
         users[user].append(['monto fijo', 'Q1 mes', salario])
-
-    print("Inasistencias")
-    for username in listUser:
-        registros = gestor.get(businessIdQ1,"INASISTENCIA",username)
-        for registro in registros:
-            fecha = registro["fecha"]
-            cantidad = registro["cantidad"]
-            if cantidad <= 0:
-                continue
-            
-            descuento = 0.0
-            if username in userLogistic:
-                journalType = userLogistic[username]
-                descuento = round(cantidad * salarioDiarioLogistica * journalType,2)
-            else:
-                descuento = round(cantidad * salarioDiarioDecimalQ1,2)
-            users[username].append(["inasistencia",f"Q1 {fecha}",-float(descuento)])
-
+    
+    #Caso Inasistencias
+    procesarInasistencias(gestor=gestor, businessId=businessIdQ1, sede="Q1", listUser=listUser,
+    users=users, userLogistic=userLogistic, salarioDiarioTecnica=salarioDiarioDecimalQ1,
+    salarioDiarioLogistica=salarioDiarioLogistica)
+    
     print("Feriados")
     for username in listUser:
         registros = gestor.get(businessIdQ1,"Feriado",username)
@@ -280,21 +322,10 @@ def run():
         print(user+" "+str(salario))
         users[user].append(['monto fijo', 'Q2', salario])
 
-    print("Inasistencias")
-    for username in listUser:
-        registros = gestor.get(businessIdQ3,"INASISTENCIA",username)
-        for registro in registros:
-            fecha = registro["fecha"]
-            cantidad = registro["cantidad"]
-            if cantidad <= 0:
-                continue
-            ddescuento = 0.0
-            if username in userLogistic:
-                journalType = userLogistic[username]
-                descuento = round(cantidad * salarioDiarioLogistica * journalType,2)
-            else:
-                descuento = round(cantidad * salarioDiarioDecimalQ1,2)
-            users[username].append(["inasistencia",f"Q1 {fecha}",-float(descuento)])
+    #Caso Inasistencias
+    procesarInasistencias(gestor=gestor, businessId=businessIdQ3, sede="Q2", listUser=listUser,
+    users=users, userLogistic=userLogistic, salarioDiarioTecnica=salarioDiarioDecimal,
+    salarioDiarioLogistica=salarioDiarioLogistica)
 
     print("Feriados")
     for username in listUser:
