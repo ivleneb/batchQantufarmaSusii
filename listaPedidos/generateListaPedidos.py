@@ -61,80 +61,86 @@ def createDataProvList(prov, cont):
     data.append(l)
     return data
 
+def loadProductAndPackageData():
+    loader = SusiiProductLoader(business_)
+    # load products from q1
+    prodDict:dict[str, QantuProduct] = loader.downloadProducts(downloadSaleData=True)
+    if not prodDict:
+        print("Fail to downloadProducts.")
+        sys.exit(2)
+    # load products from q1
+    packDict:dict[str, QantuPackage] = loader.downloadPackages(downloadSaleData=True)
+    if not packDict:
+        print("Fail to downloadPackages.")
+        sys.exit(3)
+    return prodDict, packDict
+
+def increaseSoldUnitsByPackages(prodDict, packDict):
+    print("First product filter")
+    for pack in packDict.values():
+        for packprodCode, qty in pack.getItems().items():
+            if packprodCode in prodDict.keys():
+                prodDict[packprodCode].addSoldUnits(
+                    qty*pack.getSoldUnits()
+                )
+                
 def medsCriteria(prod, pedirVal, perVal):
     final = '=0'
-    
     if pedirVal<0.5:
         return final
-    
     cja = prod.getUnitsCaja()
-
     if cja==0 and isFF(["TUB", "FCO"], prod.getName()):
         print("DEFAULT for TUB or FCO is 1 "+prod.getName())
         cja = 1
     elif cja==0 and isFF(["TAB", "CAP"], prod.getName()):
         print("DEFAULT for TAB or CAP is 30 "+prod.getName())
         cja = 30
-
     if cja == prod.getCantidad():
         cja = 1
-
     flag = False
     for i in range(20):
         if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
             final = '={val}'.format(val=i+1)
             flag = True
             break
-
     if not flag and perVal>0.5:
         final = '={val}'.format(val=1)
-    
     return final
 
 def bellezaCriteria(prod, pedirVal, perVal):
     final = '=0'
-    
     if prod.getStock()<=0 and pedirVal<0.25:
         return final
-    
     cja = prod.getUnitsCaja()
     if cja==0:
         print("DEFAULT for OTHERS CAT is 1 "+prod.getName())
         cja = 1
-
     flag = False
     for i in range(20):
         if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
             final = '={val}'.format(val=i+1)
             flag = True
             break
-
     if not flag and perVal>=0.25:
         final = '={val}'.format(val=1)
-    
     return final
 
 def defaultCriteria(prod, pedirVal, perVal):
     final = '=0'
-    
     if prod.getStock()<=0 and pedirVal<0.25:
         return final
-    
     cja = prod.getUnitsCaja()
     if cja==0:
         print("DEFAULT for OTHERS CAT is 1 "+prod.getName())
         cja = 1
-
     flag = False
     for i in range(20):
         if cja*(i+0.25)<pedirVal and cja*(i+1.25)>pedirVal:
             final = '={val}'.format(val=i+1)
             flag = True
             break
-
     if not flag and perVal>=0.25:
         final = '={val}'.format(val=1)
-    
     return final
 
 def computeTimeWindowDays():
@@ -147,156 +153,134 @@ def computeTimeWindowDays():
         return timeWindowDays
     else:
         return delta.days
+    
+def calculateOrderData(prod, count, timeWindowDays):
+    if stock_0:
+        prod.setStock(0)
+    if prod.getStock()==0:
+        per = '=100' 
+    active_days = prod.getActiveDays()
+    if active_days==0:
+        active_days=1 
+    if timeWindowDays<active_days:
+        active_days = timeWindowDays
+    pedir = '=({dys}*{colV}{rowV}/{n})-{colS}{rowS}'.format(
+        dys=NBR_DAYS, n=active_days,
+        colV=colVENTAS, rowV=count+1,
+        colS=colSTOCK, rowS=count+1)
+    per = '= {colP}{rowP}/ABS({colS}{rowS})'.format(
+        colP=colPEDIR, rowP=count+1,
+        colS=colSTOCK, rowS=count+1)
+    daily_mean = prod.getSoldUnits()/active_days
+    pedirVal = (NBR_DAYS*daily_mean-prod.getStock())
+    if active_days < NBR_DAYS:
+        pedirVal = (active_days*daily_mean-prod.getStock())
+        print("LESS THAN "+str(NBR_DAYS)+" days "+prod.getName())
+        pedir = '={pedirValue}'.format(pedirValue=pedirVal) 
+    perVal = 0
+    if prod.getStock()!=0:
+        perVal = pedirVal/prod.getStock()
+    else:
+        perVal = 1000
+    return pedir, per, pedirVal, perVal
 
+def determineFinalOrder(prod, pedirVal, perVal):
+    final = '0'
+    if prod.getCategory() == 'MEDICAMENTOS':
+        final = medsCriteria(prod, pedirVal, perVal)
+    elif prod.getCategory() == 'BELLEZA':
+        final = bellezaCriteria(prod, pedirVal, perVal)
+    else:
+        final = defaultCriteria(prod, pedirVal, perVal)
+    return final
+
+def calculateOrderCosts(count):
+    priceCja =  '={colCostUni}{rowP}*{colCaja}{rowP}'.format(
+        colCostUni=colCOSTO,
+        colCaja=colCJA,
+        rowP=count+1)
+    monto =  '={colCostUni}{rowP}*{colCaja}{rowP}*{colF}{rowP}'.format(
+        colCostUni=colCOSTO,
+        colCaja=colCJA,
+        colF=colFINAL,
+        rowP=count+1)
+    return priceCja, monto
+
+def createProductRow(prod, per, pedir, final, priceCja, monto):
+    l=[]
+    if prod.getCategory() == 'MEDICAMENTOS':
+        l = [
+            prod.getCode(), prod.getMergedName(), prod.getCategory(), prod.getPrincipioActivo(),
+            prod.getStock(), prod.getBrand(), prod.getLastProvider(),
+            prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per,
+            prod.getUnitsBlister(), prod.getUnitsCaja(),
+            pedir, final, priceCja, monto
+        ]
+    else:
+        l = [
+            prod.getCode(), prod.getMergedName(), prod.getCategory(), '',
+            prod.getStock(), prod.getBrand(), prod.getLastProvider(),
+            prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per,
+            0, prod.getUnitsCaja(),
+            pedir, final, priceCja, monto
+        ]
+    return l
+
+def registerProvider(prod, providers):
+    lastProvider = prod.getLastProvider()
+    if lastProvider == None or isinstance(lastProvider, float):
+        lastProvider = ""    
+    if not lastProvider in providers:
+        providers.append(lastProvider)
+        
 def createDataList(prodDict, providers):
     data = []
     count = 0
-    
     timeWindowDays = computeTimeWindowDays()
     print("DEFAULT TIME WINDOW DAYS: "+str(timeWindowDays))
-
     for prod in prodDict.values():
-        
-        if stock_0:
-            prod.setStock(0)
-        
         count = count + 1
+        pedir, per, pedirVal, perVal = calculateOrderData(prod, count, timeWindowDays)
         
-        if prod.getStock()==0:
-            per = '=100'
-            
-        active_days = prod.getActiveDays()
-        if active_days==0:
-            active_days=1
-            
-        if timeWindowDays<active_days:
-            active_days = timeWindowDays
+        final = determineFinalOrder(prod, pedirVal, perVal)
+        priceCja, monto = calculateOrderCosts(count)
         
-        pedir = '=({dys}*{colV}{rowV}/{n})-{colS}{rowS}'.format(
-            dys=NBR_DAYS, n=active_days,
-            colV=colVENTAS, rowV=count+1,
-            colS=colSTOCK, rowS=count+1)
-        
-        per = '= {colP}{rowP}/ABS({colS}{rowS})'.format(
-            colP=colPEDIR, rowP=count+1,
-            colS=colSTOCK, rowS=count+1)
-        
-        daily_mean = prod.getSoldUnits()/active_days
-        
-        pedirVal = (NBR_DAYS*daily_mean-prod.getStock())
-        if active_days < NBR_DAYS:
-            pedirVal = (active_days*daily_mean-prod.getStock())
-            print("LESS THAN "+str(NBR_DAYS)+" days "+prod.getName())
-            pedir = '={pedirValue}'.format(pedirValue=pedirVal) 
-        
-        
-        perVal = 0
-        if prod.getStock()!=0:
-            perVal = pedirVal/prod.getStock()
-        else:
-            perVal = 1000
-        
-        final = '0'
-        if prod.getCategory() == 'MEDICAMENTOS':
-            final = medsCriteria(prod, pedirVal, perVal)
-        elif prod.getCategory() == 'BELLEZA':
-            final = bellezaCriteria(prod, pedirVal, perVal)
-        else:
-            final = defaultCriteria(prod, pedirVal, perVal)
-
-        priceCja =  '={colCostUni}{rowP}*{colCaja}{rowP}'.format(
-            colCostUni=colCOSTO,
-            colCaja=colCJA,
-            rowP=count+1)
-        
-        monto =  '={colCostUni}{rowP}*{colCaja}{rowP}*{colF}{rowP}'.format(
-            colCostUni=colCOSTO,
-            colCaja=colCJA,
-            colF=colFINAL,
-            rowP=count+1)
-        
-        l=[]
-        
-        #pName = prod.getName()
-        #if prod.getUnitsCaja()!=0:
-        #    pName = prod.getName()+" X "+str(int(prod.getUnitsCaja()))
-        
-        if prod.getCategory() == 'MEDICAMENTOS':
-            l = [prod.getCode(), prod.getMergedName(), prod.getCategory(), prod.getPrincipioActivo(),
-                     prod.getStock(), prod.getBrand(), prod.getLastProvider(),
-                     prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per, prod.getUnitsBlister(), prod.getUnitsCaja(),
-                     pedir, final, priceCja, monto]
-        else:
-            l = [prod.getCode(), prod.getMergedName(), prod.getCategory(), '',
-                     prod.getStock(), prod.getBrand(), prod.getLastProvider(),
-                     prod.getLastCost(), prod.getPrice(), prod.getSoldUnits(), per, 0, prod.getUnitsCaja(),
-                     pedir, final, priceCja, monto]
-
+        l= createProductRow(prod, per, pedir, final, priceCja, monto)
         data.append(l)
         
-        lastProvider = prod.getLastProvider()
-        if lastProvider == None or isinstance(lastProvider, float):
-            lastProvider = ""    
-        
-        if not lastProvider in providers:
-            providers.append(lastProvider)
-        
+        registerProvider(prod, providers)
     return data
 
-def run():
-    providers:list[str] = []
-    print("------------------------ INIT ---------------------------")
-    
-    loader = SusiiProductLoader(business_)
-
-    # load products from q1
-    prodDict:dict[str, QantuProduct] = loader.downloadProducts(downloadSaleData=True)
-    if not prodDict:
-        print("Fail to downloadProducts.")
-        sys.exit(2)
-
-    # load products from q1
-    packDict:dict[str, QantuPackage] = loader.downloadPackages(downloadSaleData=True)
-    if not packDict:
-        print("Fail to downloadPackages.")
-        sys.exit(3)
-
-    # Incresase sold unit according to package
-    print("First product filter")
-    for pack in packDict.values():
-        for packprodCode, qty in pack.getItems().items():
-            if packprodCode in prodDict.keys():
-                prodDict[packprodCode].addSoldUnits(qty*pack.getSoldUnits())
-                #if prodDict[packprodCode].
-
-    prodDict = QantuProductMerger.combineProducts(prodDict)
-
-    dataOut = createDataList(prodDict, providers)
-    #dataMeds = createDataList(medsDict)
-    #dataOther = createDataList(otherDict)
-    #countMeds = len(dataMeds)
-    #countOther =len(dataOther)
+def exportExcel(dataOut, providers):
     countProds = len(dataOut)
-
     cols = ['COD', 'NOMBRE', 'CATEGORIA', 'PA', 'STOCK', 'BRAND', 'PRVDOR', 'COSTO',
             'PRECIO', 'VENTAS', 'PER', 'BLI', 'CJA', 'PEDIR', 'FINAL', 'COSTOCJA', 'MONTO']
-    #outMed_df = pandas.DataFrame(dataMeds, columns = cols)
-    #outOther_df = pandas.DataFrame(dataOther, columns = cols)
     out_df = pandas.DataFrame(dataOut, columns = cols)
-
     now = datetime.now().strftime("%Y%m%d_%H%M")
     excel_name = str(business_)+'_Pedido_'+now+'.xlsx'
     out_path = './out'
     fullpath = out_path+'/'+excel_name
-    
     with pandas.ExcelWriter(fullpath) as excel_writer:
         out_df.to_excel(excel_writer, sheet_name='Productos', index=False)
-        #outMed_df.to_excel(excel_writer, sheet_name='Medicamentos', index=False)
-        #outOther_df.to_excel(excel_writer, sheet_name='Otros', index=False)
         for prov in providers:
             dataProvList = createDataProvList(prov, countProds)
             prov_df = pandas.DataFrame(dataProvList, columns = cols)
             prov_df.to_excel(excel_writer, sheet_name='Lista_'+prov, index=False)
+
+def run():
+    providers:list[str] = []
+    print("------------------------ INIT ---------------------------")    
+    prodDict, packDict = loadProductAndPackageData()
+    # Incresase sold unit according to package
+    increaseSoldUnitsByPackages(prodDict, packDict)
+    prodDict = QantuProductMerger.combineProducts(prodDict)
+    dataOut = createDataList(prodDict, providers)
+    #Consultar si se puede eliminar el codigo en comentario
+    #dataMeds = createDataList(medsDict)
+    #dataOther = createDataList(otherDict)
+    #countMeds = len(dataMeds)
+    #countOther =len(dataOther)
+    exportExcel(dataOut, providers)
             
     print("------------------------  END ---------------------------")
 
