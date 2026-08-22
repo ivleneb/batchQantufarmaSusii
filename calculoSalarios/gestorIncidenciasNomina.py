@@ -72,6 +72,56 @@ class GestorIncidenciasNomina:
         fechaFinTexto = (fechaFinUtc.strftime(formato)[:-3] + "Z")
         return fechaInicioTexto, fechaFinTexto
     
+    def indicarSede(self, businessId):
+        if businessId==8132:
+            Sede = "Retamas"
+        else:
+            Sede = "Cobian"
+        return Sede
+    
+    def validarGastos(self, businessId, apartado):
+        errores = []
+        sede = self.indicarSede(businessId)
+        categorias = self.configuracionSedes.get(businessId)
+        gastos = self.obtenerGastosSede(businessId)
+        for gasto in gastos:
+            amount = gasto.get("amount")
+            #Validaciones
+            if not amount:
+                errores.append(f"Gasto sin monto en sede {sede}, fecha: {gasto.get('id')} "
+                               f"de user: {gasto.get('description')}")
+            else:
+                try: amount = Decimal(str(amount))
+                except (ValueError, TypeError):
+                    errores.append(f"Monto no numérico en sede {sede}, fecha: {gasto.get('date')}"
+                                   f"de user: {gasto.get('description')}")
+                else:
+                    if amount <= 0:
+                        errores.append(f"Monto inválido (<=0) en sede {sede}, fecha: {gasto.get('date')}"
+                                       f"de user: {gasto.get('description')}")
+            if not gasto.get("description"):
+                errores.append(f"Gasto sin nombre asignado en sede {sede}, fecha: {gasto.get('date')}"
+                               f"de user: {gasto.get('description')}")
+            if not gasto.get("category"):
+                errores.append(f"Gasto sin categoria asignada en sede {sede}, fecha: {gasto.get('date')}"
+                               f"de user: {gasto.get('description')}")
+            if not gasto.get("observations"):
+                errores.append(f"Gasto sin observaciones en sede {sede}, fecha: {gasto.get('date')}"
+                               f"de user: {gasto.get('description')}")
+            if not categorias:
+                errores.append(f"La sede {businessId} no está configurada.")
+            elif apartado not in categorias:
+                opciones = ", ".join(categorias.keys())
+                errores.append(f"El apartado '{apartado}' no existe. Opciones disponibles: {opciones}.")
+            else:
+                categoriaId = categorias[apartado]
+        # Si hubo errores, detener el programa
+        if errores:
+            mensaje_final = "Se encontraron errores de validación:\n" + "\n".join(errores)
+            raise ValueError(mensaje_final)
+        # Si no hubo errores, continua
+        return categoriaId
+
     def normalizarNombre(self, nombre):
         return " ".join(nombre.strip().upper().split())
     
@@ -90,12 +140,9 @@ class GestorIncidenciasNomina:
             request = RequestHandler(endpoint, businessId=businessId)
             respuesta = request.execute()
             resultados = respuesta.get("results") or []
-            total = respuesta.get("count")
             gastos.extend(resultados)
-            print(f"Sede {businessId} - página {pagina}: {len(resultados)} registros obtenidos. Acumulados: {len(gastos)} de {total}.")
+            print(f"Sede {businessId} - página {pagina}: {len(resultados)} registros obtenidos. Acumulados: {len(gastos)} ")
             if not resultados:
-                break
-            if total is not None:
                 break
             pagina += 1
         self.gastosPorSede[businessId] = gastos
@@ -122,11 +169,7 @@ class GestorIncidenciasNomina:
             raise TypeError("El username debe enviarse como texto.")
         apartado = apartado.strip().upper()
         username = self.normalizarNombre(username)
-        categorias = self.configuracionSedes[businessId]
-        if apartado not in categorias:
-            opciones = ", ".join(categorias.keys())
-            raise ValueError(f"El apartado '{apartado}' no existe. Opciones disponibles: {opciones}.")
-        categoriaId = categorias[apartado]
+        categoriaId = self.validarGastos(businessId, apartado)
         gastos = self.obtenerGastosSede(businessId)
         registros = []
         total = Decimal("0.00")
@@ -137,23 +180,18 @@ class GestorIncidenciasNomina:
                 continue
             if not self.perteneceAlPeriodo(gasto):
                 continue
-            nombre = gasto.get("description")
-            if not nombre:
-                continue
-            nombre = self.normalizarNombre(nombre)
+            nombre = self.normalizarNombre(gasto.get("description"))
             if nombre != username:
                 continue
             fecha = self.obtenerFechaLocal(gasto)
             if fecha is None:
                 continue
-            try:
-                cantidad = Decimal(str(gasto.get("amount", "0.00")))
-            except (ValueError, TypeError):
-                print(f"Advertencia: cantidad inválida para {username} en {fecha}.")
-                continue
+            observations = gasto.get("observations")
+            cantidad = Decimal(str(gasto.get("amount", "0.00")))
             registros.append({
                 "fecha": fecha,
-                "cantidad": cantidad
+                "cantidad": cantidad,
+                "observations": observations
             })
             total += cantidad
         registros.sort(key=lambda registro: registro["fecha"])
@@ -166,8 +204,8 @@ def run():
     print("Cargando información de las sedes...")
     gestor.cargarDatos()
 
-    print("JORNADAS")
-    jornada = gestor.get(8132, "JORNADA","Katherine")
+    print("INASISTENCIA")
+    jornada = gestor.get(8132, "INASISTENCIA","XIOMARA")
     print(jornada)
 
 if __name__ == "__main__":
