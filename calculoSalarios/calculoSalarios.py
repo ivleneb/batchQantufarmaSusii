@@ -106,6 +106,31 @@ def getPeriod():
         else:
             print("Valor no numérico en periodo ["+year+"]["+month+"].")
             continue
+        
+def procesarInasistenciasLogistica(gestor, businessId, sede, users, userLogistic, salarioDiarioLogistica):
+    print(f"INASISTENCIA DE LOGISTICA - {sede}")
+    for username in userLogistic:
+        registros = gestor.get(businessId, "INASISTENCIA_LOGISTICA", username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue
+            descuento = round(cantidad * salarioDiarioLogistica, 2)
+            users[username].append(["inasistencia logistica", f"{sede} {fecha}", -float(descuento)])
+
+def procesarJornadasLogistica(gestor, businessId, sede, users, userLogistic, salarioDiarioLogistica):
+    print(f"JORNADA DE LOGISTICA - {sede}")
+    for username in userLogistic:
+        registros = gestor.get(businessId,"Jornada_Logistica",username)
+        for registro in registros:
+            fecha = registro["fecha"]
+            cantidad = registro["cantidad"]
+            if cantidad <= 0:
+                continue     
+            jornada = round(cantidad * salarioDiarioLogistica,2)
+            users[username].append(["jornadas extra logistica",f"{sede} {fecha}",+float(jornada)])
+
 def validarObservationsReemplazo(observations, users):
     observations = observations.strip()
     if observations.upper() == "SIN REEMPLAZO":
@@ -132,7 +157,7 @@ def validarObservationsReemplazo(observations, users):
                          f"entre 0 y 1. Valor recibido: {cantidadReemplazo}")
     return usernameReemplazo, cantidadReemplazo
 
-def procesarInasistencias(gestor, businessId, sede, listUser, users, userLogistic, salarioDiarioTecnica, salarioDiarioLogistica):
+def procesarInasistencias(gestor, businessId, sede, listUser, users, salarioDiarioTecnica, salarioDiarioLogistica):
     print(f"Inasistencias {sede}")
     for username in listUser:
         registros = gestor.get(businessId, "INASISTENCIA", username)
@@ -142,11 +167,8 @@ def procesarInasistencias(gestor, businessId, sede, listUser, users, userLogisti
             observations = registro["observations"]
             if cantidad <= 0:
                 continue
-            # 1. Descontar inasistencia
-            if username in userLogistic:
-                descuento = round(cantidad * salarioDiarioLogistica, 2) #si es logistica
-            else:
-                descuento = round(cantidad * salarioDiarioTecnica, 2) #si es tecnica
+            # 1. Descontar Inasistencia
+            descuento = round(cantidad * salarioDiarioTecnica, 2)
             users[username].append(["inasistencia", f"{sede} {fecha}", -float(descuento)])
             # 2. Agregar jornada al remplazo
             reemplazo, cantidadReemplazo = (validarObservationsReemplazo(observations, users))
@@ -155,11 +177,6 @@ def procesarInasistencias(gestor, businessId, sede, listUser, users, userLogisti
             jornada = round(cantidadReemplazo * salarioDiarioTecnica, 2)
             users[reemplazo].append(["jornada", f"{sede} {fecha} - Reemplazo de {username}",
                                      float(jornada)])
-            # 3. Si el remplazo es de user logistica
-            if reemplazo in userLogistic:
-                descuentoLogistica = round(salarioDiarioLogistica, 2)
-                users[reemplazo].append(["inasistencia_logistica", f"{sede} {fecha} - Reemplazo",
-                                         -float(descuentoLogistica)])
 
 def run():
     
@@ -221,8 +238,11 @@ def run():
     
     #Caso Inasistencias
     procesarInasistencias(gestor=gestor, businessId=businessIdQ1, sede="Q1", listUser=listUser,
-    users=users, userLogistic=userLogistic, salarioDiarioTecnica=salarioDiarioDecimalQ1,
-    salarioDiarioLogistica=salarioDiarioLogistica)
+    users=users, salarioDiarioTecnica=salarioDiarioDecimalQ1, salarioDiarioLogistica=salarioDiarioLogistica)
+    
+    #Caso Inasistencias Logistica
+    procesarInasistenciasLogistica(gestor=gestor, businessId=businessIdQ1, sede="Q1",users=users,
+                                   userLogistic=userLogistic, salarioDiarioLogistica=salarioDiarioLogistica)
     
     print("Feriados")
     for username in listUser:
@@ -245,6 +265,10 @@ def run():
                 continue
             jornada = round(cantidad * salarioDiarioDecimalQ1,2)
             users[username].append(["jornadas extras",f"Q1 {fecha}",+float(jornada)])
+    
+    #Caso Jornadas Logistica
+    procesarJornadasLogistica(gestor=gestor, businessId=businessIdQ1, sede="Q1",users=users,
+                              userLogistic=userLogistic, salarioDiarioLogistica=salarioDiarioLogistica)
 
     print("Pérdidas por Ajustes")
     for username in listUser:
@@ -323,10 +347,12 @@ def run():
         users[user].append(['monto fijo', 'Q2', salario])
 
     #Caso Inasistencias
-    procesarInasistencias(gestor=gestor, businessId=businessIdQ3, sede="Q2", listUser=listUser,
-    users=users, userLogistic=userLogistic, salarioDiarioTecnica=salarioDiarioDecimal,
-    salarioDiarioLogistica=salarioDiarioLogistica)
-
+    procesarInasistencias(gestor=gestor, businessId=businessIdQ3, sede="Q3", listUser=listUser,
+    users=users, salarioDiarioTecnica=salarioDiarioDecimal, salarioDiarioLogistica=salarioDiarioLogistica)
+    #Caso Inasistencias Logisticas
+    procesarInasistenciasLogistica(gestor=gestor, businessId=businessIdQ3, sede="Q3",users=users,
+                                   userLogistic=userLogistic, salarioDiarioLogistica=salarioDiarioLogistica)
+    
     print("Feriados")
     for username in listUser:
         registros = gestor.get(businessIdQ3,"Feriado",username)
@@ -348,6 +374,10 @@ def run():
                 continue
             jornada = round(cantidad * salarioDiarioDecimal,2)
             users[username].append(["jornadas extras",f"Q3 {fecha}",+float(jornada)])
+            
+    #Caso Jornadas Logistica
+    procesarJornadasLogistica(gestor=gestor, businessId=businessIdQ3, sede="Q3",users=users,
+                              userLogistic=userLogistic, salarioDiarioLogistica=salarioDiarioLogistica)
 
     print("Pérdidas por Ajustes")
     for username in listUser:
