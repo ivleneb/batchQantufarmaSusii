@@ -12,7 +12,9 @@ CONFIGURACION_SEDES = {
         "DESCUENTO_CAJA_CHICA": 7451,
         "ADELANTO": 7431,
         "INASISTENCIA": 7446,
+        "INASISTENCIA_LOGISTICA": 7536,
         "JORNADA": 7450,
+        "JORNADA_LOGISTICA": 7538,
         "FERIADO": 7449
     },
     5053: {
@@ -21,7 +23,9 @@ CONFIGURACION_SEDES = {
         "DESCUENTO_CAJA_CHICA": 7454,
         "ADELANTO": 7432,
         "INASISTENCIA": 7455,
+        "INASISTENCIA_LOGISTICA": 7537,
         "JORNADA": 7443,
+        "JORNADA_LOGISTICA": 7539,
         "FERIADO": 7445
     }
 }
@@ -204,8 +208,11 @@ def run():
     print("Cargando información de las sedes...")
     gestor.cargarDatos()
 
-    print("INASISTENCIA")
-    jornada = gestor.get(8132, "INASISTENCIA","XIOMARA")
+    print("INASISTENCIA_LOGISTICA")
+    jornada = gestor.get(5053, "INASISTENCIA_LOGISTICA","TEST")
+    print(jornada)
+    print("JORNADA_LOGISTICA")
+    jornada = gestor.get(8132, "JORNADA_LOGISTICA","TEST")
     print(jornada)
 
 if __name__ == "__main__":
