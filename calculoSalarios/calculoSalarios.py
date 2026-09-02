@@ -116,7 +116,7 @@ def procesarInasistenciasLogistica(gestor, businessId, sede, users, userLogistic
             cantidad = registro["cantidad"]
             if cantidad <= 0:
                 continue
-            descuento = round(cantidad * salarioDiarioLogistica, 2)
+            descuento = round(cantidad * salarioDiarioLogistica/2, 2)
             users[username].append(["inasistencia logistica", f"{sede} {fecha}", -float(descuento)])
 
 def procesarJornadasLogistica(gestor, businessId, sede, users, userLogistic, salarioDiarioLogistica):
@@ -128,33 +128,36 @@ def procesarJornadasLogistica(gestor, businessId, sede, users, userLogistic, sal
             cantidad = registro["cantidad"]
             if cantidad <= 0:
                 continue     
-            jornada = round(cantidad * salarioDiarioLogistica,2)
+            jornada = round(cantidad * salarioDiarioLogistica/2,2)
             users[username].append(["jornadas extra logistica",f"{sede} {fecha}",+float(jornada)])
 
-def validarObservationsReemplazo(observations, users):
+def validarObservationsReemplazo(observations, users,sede, fecha, username):
     observations = observations.strip()
     if observations.upper() == "SIN REEMPLAZO":
         return None, None
     if ":" not in observations:
-        raise ValueError(f"Formato inválido en observations: '{observations}'. "
-                         "Formato esperado: NOMBRE:CANTIDAD o SIN REEMPLAZO")
+        raise ValueError(f"ERROR en gasto en sede {sede}, fecha: {fecha} de user: {username}, Formato inválido"
+                        f"en observations: '{observations}'.Formato esperado: NOMBRE:CANTIDAD o SIN REEMPLAZO")
     partes = observations.split(":")
     if len(partes) != 2:
-        raise ValueError(f"Formato inválido en observations: '{observations}'. "
-                         "Formato esperado: NOMBRE:CANTIDAD o SIN REEMPLAZO")
+        raise ValueError(f"ERROR en gasto en sede {sede}, fecha: {fecha} de user: {username}, Formato inválido"
+                         f"en observations: '{observations}'. Formato esperado: NOMBRE:CANTIDAD o SIN REEMPLAZO")
     usernameReemplazo = partes[0].strip().upper()
     cantidadReemplazo = partes[1].strip()
     if not usernameReemplazo:
-        raise ValueError("No se indicó el nombre del reemplazo.")
+        raise ValueError(f"ERROR en gasto en sede {sede}, fecha: {fecha} de user: {username}"
+                         f"No se indicó el nombre del reemplazo.")
     if usernameReemplazo not in users:
-        raise ValueError(f"El usuario '{usernameReemplazo}' no existe en el sistema.")
+        raise ValueError(f"ERROR en gasto en sede {sede}, fecha: {fecha} de user: {username}."
+                         f"El usuario '{usernameReemplazo}' no existe en el sistema.")
     try:
         cantidadReemplazo = Decimal(cantidadReemplazo)
     except:
-        raise ValueError(f"La cantidad '{partes[1]}' del reemplazo no es válida.")
+        raise ValueError(f"ERROR en gasto en sede {sede}, fecha: {fecha} de user: {username},"
+                         f"La cantidad '{partes[1]}' del reemplazo no es válida.")
     if cantidadReemplazo <= 0 or cantidadReemplazo > 1:
-        raise ValueError(f"La cantidad del reemplazo debe estar "
-                         f"entre 0 y 1. Valor recibido: {cantidadReemplazo}")
+        raise ValueError(f"ERROR en gasto en sede {sede}, fecha: {fecha} de user: {username},"
+                         f"La cantidad del reemplazo debe estar entre 0 y 1. Valor recibido: {cantidadReemplazo}")
     return usernameReemplazo, cantidadReemplazo
 
 def procesarInasistencias(gestor, businessId, sede, listUser, users, salarioDiarioTecnica, salarioDiarioLogistica):
@@ -171,7 +174,7 @@ def procesarInasistencias(gestor, businessId, sede, listUser, users, salarioDiar
             descuento = round(cantidad * salarioDiarioTecnica, 2)
             users[username].append(["inasistencia", f"{sede} {fecha}", -float(descuento)])
             # 2. Agregar jornada al remplazo
-            reemplazo, cantidadReemplazo = (validarObservationsReemplazo(observations, users))
+            reemplazo, cantidadReemplazo = (validarObservationsReemplazo(observations, users,sede, fecha, username))
             if reemplazo is None:
                 continue
             jornada = round(cantidadReemplazo * salarioDiarioTecnica, 2)
