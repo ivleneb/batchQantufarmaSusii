@@ -135,13 +135,18 @@ class GestorIncidenciasNomina:
             return self.gastosPorSede[businessId]
         fechaInicio, fechaFin = self.obtenerRangoFechas()
         gastos = []
+        ids = []
         pagina = 1
         while True:
             endpoint = (f"/sales/expenses/?page={pagina}&business={businessId}&date__lte={fechaFin}&date__gte={fechaInicio}")
             request = RequestHandler(endpoint, businessId=businessId)
             respuesta = request.execute()
             resultados = respuesta.get("results") or []
-            gastos.extend(resultados)
+            #gastos.extend(resultados)
+            for res in resultados:
+                if not res['id'] in ids:
+                    ids.append(res['id'])
+                    gastos.append(res)
             print(f"Sede {businessId} - página {pagina}: {len(resultados)} registros obtenidos. Acumulados: {len(gastos)} ")
             if not resultados:
                 break
@@ -206,7 +211,7 @@ def run():
     gestor.cargarDatos()
 
     print("INASISTENCIA_LOGISTICA")
-    jornada = gestor.get(5053, "INASISTENCIA_LOGISTICA","TEST")
+    jornada = gestor.get(5053, "INASISTENCIA","Ruth")
     print(jornada)
     print("JORNADA_LOGISTICA")
     jornada = gestor.get(8132, "JORNADA_LOGISTICA","TEST")
