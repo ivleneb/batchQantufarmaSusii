@@ -16,7 +16,7 @@ lazaro = 8132
 cobian = 5053
 # load configuration
 config = QantuConfiguration()
-NBR_DAYS = 15
+NBR_DAYS = 4
 # business id
 business_ = config.business_
 if business_ == cobian:
@@ -80,11 +80,67 @@ def actualizarVentasPorPaquetes(productDict, packDict):
                 productDict[packprodCode].addSoldUnits(qty * pack.getSoldUnits())
     return productDict
 
-def tieneStockSuficienteGold(prod):
-    if prod.getGenerico() != 2:
-        return False
-    minStock = prod.getMinStock()
-    return prod.getStock() > minStock * 2
+## Caso Especial Prod GOLD (isGenerico()=2).
+def buscarProductosEquivalentes(prod, productDictOther):
+    productosEquivalentes = []
+    for prodOther in productDictOther.values():
+        if prod.getCode() == prodOther.getCode():
+            productosEquivalentes.append(prodOther)
+        elif prod.getName() == prodOther.getName():
+            productosEquivalentes.append(prodOther)
+    return productosEquivalentes
+
+def obtenerStockTotalEquivalente(productosEquivalentes):
+    stockTotal = 0
+    for prodOther in productosEquivalentes:
+        stockTotal += prodOther.getStock()
+    return stockTotal
+
+def procesarProductoGold(prod, productDictOther, moveList):
+    productosEquivalentes = buscarProductosEquivalentes(prod, productDictOther)
+    if not productosEquivalentes:
+        print("GOLD [" + prod.getName() + "] NOT in OTHER store.")
+        return
+    stockActual = prod.getStock()
+    minStockActual = prod.getMinStock()
+    stockOtroLocal = obtenerStockTotalEquivalente(productosEquivalentes)
+    # Si ya tiene más del doble de su stock mínimo, no pedir
+    if stockActual > minStockActual * 2:
+        print("GOLD [" + prod.getName() +"] tiene stock suficiente.")
+        return
+    # Stock total entre ambas sedes
+    stockTotal = stockActual + stockOtroLocal
+    # Cuánto necesitaría para quedar equilibrado
+    stockEquilibrado = stockTotal / 2
+    cantidadSolicitada = math.floor(stockEquilibrado - stockActual)
+    if cantidadSolicitada <= 0:
+        print("GOLD [" + prod.getName() +"] no requiere traslado.")
+        return
+    # Determinar el stock mínimo que debemos dejar en la otra sede
+    minStockOtroLocal = 0
+    for prodOther in productosEquivalentes:
+        minStockOtroLocal += prodOther.getMinStock()
+    # Cuánto puede entregar realmente la otra sede
+    disponibleParaTraslado = (stockOtroLocal - minStockOtroLocal)
+    if disponibleParaTraslado <= 0:
+        print("GOLD [" + prod.getName() +"] OTHER store no tiene excedente.")
+        return
+    # Nunca trasladar más de lo necesario ni más de lo que realmente puede entregar la otra sede
+    cantidadTraslado = min(cantidadSolicitada, disponibleParaTraslado)
+    # Caso Productos que vienen en Blister
+    if prod.getUnitsBlister() > 1:
+        cantidadBlister = cantidadTraslado // prod.getUnitsBlister()
+        TrasladoBlister = cantidadBlister * prod.getUnitsBlister()
+        if cantidadBlister < 1:
+            print("GOLD ["+prod.getName()+"] OTHER store no tiene suficiente para enviar blister")
+            return 0
+        moveList.append([prod.getCode(), prod.getMergedName(), TrasladoBlister])
+        return
+    #Traslado
+    if cantidadTraslado > 0:
+        print("GOLD [" + prod.getName() + "] Trasladar " + str(cantidadTraslado) + " unidades.")
+        moveList.append([prod.getCode(), prod.getMergedName(), cantidadTraslado])
+##Fin de Prod GOLD.
 
 def calcularNecesidadProducto(prod, timeWindowDays):
     active_days = prod.getActiveDays()
@@ -99,6 +155,10 @@ def calcularNecesidadProducto(prod, timeWindowDays):
     return stock, requestQtty
 
 def procesarProductoNecesitado(prod, prodCode, productDictOther, stock, requestQtty, moveList):
+    ## Caso de si el producto es considerado GOLD.
+    if prod.getGenerico() == 2:
+        procesarProductoGold(prod, productDictOther, moveList)
+        return
     if requestQtty > 0.5 * stock:
         requestQtty = math.ceil(requestQtty)
         print("Prod["+prod.getName()+"] require units.")
@@ -246,9 +306,6 @@ def run():
             continue
         elif prod.getCategory()=='OFICINA':
             procesarProductoOficina(prod, prodCode, productDictOther, moveList)
-        ##elif tieneStockSuficienteGold(prod):
-            #print("GOLD [" + prod.getName() + "] tiene stock suficiente.")
-            #continue
         else:
             stock, requestQtty = calcularNecesidadProducto(prod, timeWindowDays)
            # if p1.pedirValue>=0 and stock of p1 in q1 is 0
@@ -267,4 +324,4 @@ def run():
                 procesarProductoNuevoNoMedicamento(prod2, business_, moveList)
     generateReport(moveList)
 
-run()
+run() 
