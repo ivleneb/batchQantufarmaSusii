@@ -17,6 +17,7 @@ class HomologarProducts:
                 "NOMBRE": producto.getName(),
                 "PRECIO": producto.getPrice(),
                 "DISABLE": producto.isDisable(),
+                "GENERICO": producto.getGenerico(),
                 "SEDE": sede
             })
         df = pd.DataFrame(datos)
@@ -60,12 +61,38 @@ class HomologarProducts:
             "NOMBRE COBIAN",
             "ESTADO COBIAN"
         ])
+        wsGold = wb.create_sheet("GOLD Desincronizados")
+        wsGold.append([
+            "CODIGO",
+            "NOMBRE RETAMAS",
+            "GENERICO RETAMAS",
+            "NOMBRE COBIAN",
+            "GENERICO COBIAN",
+            "ESTADO"
+        ])
         coincidencias = 0
         disableCount = 0
         for codigo in retamas.index:
             if codigo in cobian.index:
                 r = retamas.loc[codigo]
                 c = cobian.loc[codigo]
+                # VALIDAR GOLD
+                genericoRetamas = r["GENERICO"]
+                genericoCobian = c["GENERICO"]
+                # Solo interesa cuando exactamente una sede tiene GENERICO = 2
+                if (genericoRetamas == 2) != (genericoCobian == 2):
+                    if genericoRetamas == 2:
+                        estado = "Cobian no es gold"
+                    else:
+                        estado = "Retamas no es gold"
+                    wsGold.append([
+                        codigo,
+                        r["NOMBRE"],
+                        genericoRetamas,
+                        c["NOMBRE"],
+                        genericoCobian,
+                        estado
+                    ])
                 if r["DISABLE"] and c["DISABLE"]:
                     continue
                 if r["DISABLE"] != c["DISABLE"]:
