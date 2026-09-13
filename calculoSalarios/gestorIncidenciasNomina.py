@@ -92,7 +92,7 @@ class GestorIncidenciasNomina:
             amount = gasto.get("amount")
             #Validaciones
             if not amount:
-                errores.append(f"Gasto sin monto en sede {sede}, fecha: {gasto.get('id')} "
+                errores.append(f"Gasto sin monto en sede {sede}, fecha: {gasto.get('date')} "
                                f"de user: {gasto.get('description')}")
             else:
                 try: amount = Decimal(str(amount))
@@ -108,9 +108,6 @@ class GestorIncidenciasNomina:
                                f"de user: {gasto.get('description')}")
             if not gasto.get("category"):
                 errores.append(f"Gasto sin categoria asignada en sede {sede}, fecha: {gasto.get('date')}"
-                               f"de user: {gasto.get('description')}")
-            if not gasto.get("observations"):
-                errores.append(f"Gasto sin observaciones en sede {sede}, fecha: {gasto.get('date')}"
                                f"de user: {gasto.get('description')}")
             if not categorias:
                 errores.append(f"La sede {businessId} no está configurada.")
