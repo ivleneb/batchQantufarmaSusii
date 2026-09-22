@@ -91,16 +91,12 @@ def run():
     for prodCode in productDict:
         # copy values from main (q1) to other store
         prod = productDict[prodCode]
-        
         if prod.getStock()<=0 or prod.getCategory()=='OFICINA':
             continue
-        
         name = prod.getName()
-        
         cat = prod.getCategory()
         if isVoid(cat):
             errorList.append([prodCode, name, "CATEGORY", "Valor vacío", cat])
-        
         
         numProps = len(name.split())
         if cat=='MEDICAMENTOS' and numProps!=6:
@@ -165,7 +161,7 @@ def run():
             if not isNumeric(uBli):
                 errorList.append([prodCode, name, "UNITS BLISTER", 
                 "Valor inválido [entero]", uBli])
-                
+            
             dictValidFF = PropertyLoader.getPresentacionVenta()
             ff = prod.getFF()
             matched = False
@@ -180,14 +176,13 @@ def run():
             if not matched:
                 errorList.append([prodCode, name, "Presentacion Venta", 
                 "Valor inválido", ff])    
-        
+
         uCaj = prod.getUnitsCaja()
         if isVoid(uCaj):
             errorList.append([prodCode, name, "UNITS CAJA", "Valor vacío", uCaj])
         if not isNumeric(uCaj):
             errorList.append([prodCode, name, "UNITS CAJA", 
-            "Valor inválido [entero]", uCaj])
-            
+            "Valor inválido [entero]", uCaj])  
         vto = prod.getFechaVto()
         if isVoid(vto):
             errorList.append([prodCode, name, "FECHA VTO", "Valor vacío", vto])
@@ -217,10 +212,6 @@ def run():
                     if code is None:
                         errorList.append([prodCode, name, "NUM REG SAN", "El codigo del registro sanitario DIGESA/DIGEMID es invalido", regSan])
                         continue
-            else:
-                continue
-            
-            
             listCodePerCat = PropertyLoader.getRegCodePerCategory()
             listCodePerCatDigesa = PropertyLoader.getRegDigesaCodePerCategory()
             
@@ -238,7 +229,6 @@ def run():
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a GALENICOS", regSan+" code:"+code])
             elif prod.getCategory()=='SUPLEMENTOS' and  not (code in listCodePerCat['SUPLEMENTOS'] or code in listCodePerCatDigesa['SUPLEMENTOS'] ):
                 errorList.append([prodCode, name, "NUM REG SAN", "Registro sanitario no corresponde a SUPLEMENTOS", regSan+" code:"+code])
-                
         creat = prod.getCreatedAt()
         if isVoid(creat):
             errorList.append([prodCode, name, "CREATED AT", "Valor vacío", creat])
@@ -259,7 +249,6 @@ def run():
             errorList.append([prodCode, name, "SEG 2", "Valor inválido", seg2])
         if not isVoid(seg3) and (not seg3 in segCodes.keys()):
             errorList.append([prodCode, name, "SEG 3", "Valor inválido", seg3])
-        
         price = prod.getPrice()
         cost = prod.getLastCost()
         mcp = (price-cost)/price
@@ -267,7 +256,8 @@ def run():
         ideal = round(cost/0.9, 2)
         if mcpper < 10 and prod.getPriceLogic():
             errorList.append([prodCode, name, "PRICE", "MC% es menor al 10%. Minimum price "+str(ideal), mcpper])
-        
+        if price < cost:
+            errorList.append([prodCode, name, "PRICE", "Precio menor al costo del producto. Minimum price "+str(ideal), mcp])
     generateReportFile(errorList)
 
 run()
