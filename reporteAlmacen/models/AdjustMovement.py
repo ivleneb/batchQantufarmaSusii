@@ -9,10 +9,10 @@ class AdjustMovement(WarehouseMovement):
         self.buildProperties(data)
         
     def buildProperties(self, data):
-        self.product = data['records'][0]['product']
+        self.product = self.records[0]['product']
         self.pCode = self.product['code']
         self.pName = self.product['name']
-        self.recQtty = data['records'][0]['quantity']
+        self.recQtty = self.records[0]['quantity']
         self.motive = ''
         self.cost = ''
         self.quant = ''
@@ -118,8 +118,8 @@ class AdjustMovement(WarehouseMovement):
             self.comm += comm
             self.data.append([date, username, number, direction, self.pCode, self.pName, self.quant, self.motive, 0.0, self.comm, obs])
             return True
-        
-        if float(self.quant) != float(self.recQtty):
+        #Comparar cantidades sin importar el signo (cantidad:)
+        if abs(float(self.quant)) != abs(float(self.recQtty)):
             comm = "[WARNING] AJUSTE "+str(number)+": CANTIDAD DE PRODUCTO "+str(self.pCode)+" NO COINCIDE CON OBS. ("+self.quant+"!="+self.recQtty+")"
             print(comm)
             self.comm+=comm

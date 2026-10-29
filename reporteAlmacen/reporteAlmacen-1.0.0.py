@@ -16,7 +16,7 @@ uri_ = config.uri_
 lsMove=[]
 
 def retrieveMoveList(beginDtl, endDtl, page=1):
-    uri = "/v1/warehouses/warehouse-movements/?number=&content_type__model=adjustment&page="+str(page)+"&business="+str(business_)+"&date__gte="+beginDtl+"T05:00:00.000Z&date__lte="+endDtl+"T04:59:59.999Z"
+    uri = "/v2/warehouses/adjustments/?number=&content_type__model=adjustment&page="+str(page)+"&business="+str(business_)+"&date__gte="+beginDtl+"T05:00:00.000Z&date__lte="+endDtl+"T04:59:59.999Z"
     print(uri)
     rd = RequestHandler(uri)
     res = rd.execute()
@@ -60,7 +60,7 @@ if retrieveMoveList(beginDt, endDt) == 0:
     
     prevMovim = None
     for idMove in unique_list:
-        uri="/warehouses/warehouse-movements/"+str(idMove)+"/?business="+str(business_)
+        uri="/v2/warehouses/adjustments/"+str(idMove)+"/?business="+str(business_)
         print(uri)
         rd = RequestHandler(uri)
         res = rd.execute()
