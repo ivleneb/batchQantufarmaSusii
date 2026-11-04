@@ -20,6 +20,7 @@ class RequestHandler:
     def __init__(self, uri, payload=None, businessId=None):
         self.uri = uri
         self.payload = payload
+        self.businessId = businessId
         if businessId is not None:
             self.user_ = config.getUserForBusiness(businessId)
             self.pass_ = config.getPasswordForBusiness(businessId)

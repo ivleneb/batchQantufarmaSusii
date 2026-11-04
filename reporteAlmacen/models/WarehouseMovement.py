@@ -6,12 +6,17 @@ class WarehouseMovement:
     
     def __init__(self, resp, typ:str='NO_TYPE'):
         self.user = resp['user']
-        self.state = resp['is_active']
+        #Arreglo momentaneo para que funcione con el v2
+        if 'is_active' in resp:
+            self.state = resp['is_active']
+        else:
+            self.state = resp.get('reversed_at') is None
         self.obs = resp['observations']
         self.number = resp['number']
         self.date = resp['date']
         self.direction = resp['get_type_display']
-        self.records = resp['records']
+        # igual otro arreglo momentaneo
+        self.records = resp.get('records', resp.get('movements', []))
         self.moveType = typ
         self.data = []
         
