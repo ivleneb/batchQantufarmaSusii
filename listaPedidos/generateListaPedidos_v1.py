@@ -80,10 +80,8 @@ def increaseSoldUnitsByPackages(prodDict, packDict):
     for pack in packDict.values():
         for packprodCode, qty in pack.getItems().items():
             if packprodCode in prodDict.keys():
-                prodDict[packprodCode].addSoldUnits(
-                    qty*pack.getSoldUnits()
-                )
-                
+                prodDict[packprodCode].addSoldUnits(qty*pack.getSoldUnits())  
+
 def medsCriteria(prod, pedirVal, perVal):
     final = '=0'
     if pedirVal<0.5:
@@ -154,6 +152,15 @@ def computeTimeWindowDays():
     else:
         return delta.days
     
+#Caso GOLD
+def goldNeedsMandatoryOrder(prod):
+    minStock = prod.getMinStock()
+    stock = prod.getStock()
+    if minStock <= 0:
+        return False
+    # Si llegó al mínimo o está por debajo, pedir obligatoriamente
+    return stock <= minStock
+
 def calculateOrderData(prod, count, timeWindowDays):
     if stock_0:
         prod.setStock(0)
@@ -186,13 +193,26 @@ def calculateOrderData(prod, count, timeWindowDays):
 
 def determineFinalOrder(prod, pedirVal, perVal):
     final = '0'
+    finalGold = '0'
+    #Normal
     if prod.getCategory() == 'MEDICAMENTOS':
         final = medsCriteria(prod, pedirVal, perVal)
     elif prod.getCategory() == 'BELLEZA':
         final = bellezaCriteria(prod, pedirVal, perVal)
     else:
         final = defaultCriteria(prod, pedirVal, perVal)
-    return final
+    #GOLD
+    if prod.getGenerico() == 2 and goldNeedsMandatoryOrder(prod):
+            if prod.getUnitsCaja()<10:
+                finalGold = f"={prod.getMinStock()}"
+            else:
+                # Si la caja es mas grande, basta que se pida 1 como minimo
+                finalGold = "=1"
+    #Comparar los numeros, se pedira el mas alto, por ende si el final sea 0, pero es gold se pedira aun
+    # asi al igual que si se necesita pedir mas del minimo
+    val_final = float(final.replace("=", "")) if final.startswith("=") else float(final)
+    val_gold = float(finalGold.replace("=", "")) if finalGold.startswith("=") else float(finalGold)
+    return f"={max(val_final, val_gold)}"
 
 def calculateOrderCosts(count):
     priceCja =  '={colCostUni}{rowP}*{colCaja}{rowP}'.format(
