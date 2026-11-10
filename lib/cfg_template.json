@@ -3,6 +3,7 @@
 	"businessId": SELECT_STORE_NUMBER,
 	"nbrDays": 30,
 	"zeroStock": false,
+	"simpleMode": true,
 	"credentials": {
 		"5053": {
 			"user": "yourUser",
@@ -13,6 +14,13 @@
 			"password": "yourPassword"
 		}
 	},
+	/*Colocar el nombre de proveedores, tal cual aparece en sistema, borrar este comentario*/
+	"providers": {
+        "V&G": [],
+        "MEDICORP": [],
+        "LIMA CENTER": [],
+        "VEGA": []
+    },
 	"sales": {
 		"5053":{
 			"startAt": "2023-05-27",
